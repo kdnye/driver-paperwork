@@ -1,0 +1,20 @@
+fsi-app/
+├── app/
+│   ├── __init__.py                    # Application factory, extensions, limiter setup
+│   ├── config.py                      # Runtime config/flags resolver
+│   └── blueprints/
+│       └── auth/
+│           └── routes.py              # Login/register flow + RBAC gate checks
+├── services/
+│   └── thresholds.py                  # Business-rule warnings and threshold checks
+├── static/
+│   └── css/
+│       └── fsi.css                    # Shared design tokens + components + dark mode
+├── templates/
+│   ├── base.html                      # Global layout + navbar/footer + theme loader
+│   └── auth/
+│       └── login.html
+├── models.py                          # SQLAlchemy models, enums, table constants
+├── requirements.txt
+└── tests/
+    └── test_thresholds.py
