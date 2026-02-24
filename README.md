@@ -79,3 +79,17 @@ The `wsgi.py` file keeps local bootstrap behavior while production execution is 
 
 ## Developer Notes
 - Register every new database table name as a constant in `models.py` (with the other `*_TABLE` constants) before referencing it in SQLAlchemy models or migrations.
+
+## Font Loading Strategy
+The UI uses two branded web fonts at runtime:
+- `Roboto` for body copy and controls
+- `Bebas Neue` for display headings (`.fsi-display`)
+
+Fonts are loaded in `templates/base.html` through Google Fonts with `preconnect` hints for `fonts.googleapis.com` and `fonts.gstatic.com` to reduce connection setup latency. CSS keeps resilient fallback stacks (`system-ui`, `sans-serif`) so pages still render predictably if the CDN is blocked or slow.
+
+### Privacy and Performance Trade-offs
+- **Current approach (Google Fonts CDN):** easiest maintenance, good global caching, and fast delivery in many regions. Trade-off: client browsers make requests to Google infrastructure, which may be a privacy concern in some compliance contexts.
+- **Alternative (self-hosted fonts):** stronger privacy posture and full control over caching headers/versioning, but increases repo/deployment asset management and can reduce cache-hit sharing across sites.
+
+If policy requirements change, migrate by placing font files under `static/fonts/` and defining `@font-face` rules in `static/css/fsi.css`, while keeping the same fallback stacks.
+
