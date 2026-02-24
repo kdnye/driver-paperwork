@@ -30,6 +30,12 @@ Run locally with Flask's dev server:
 python wsgi.py
 ```
 
+## Testing and Coverage
+Run tests with coverage (same command used in CI):
+```bash
+pytest --cov=app --cov=services --cov-report=term-missing
+```
+
 ## Production Runtime (Cloud Run)
 Production serving uses Gunicorn, not Flask's development server.
 
