@@ -27,8 +27,8 @@ def client(app):
     return app.test_client()
 
 
-def _create_user(email: str, employee_approved: bool) -> int:
-    user = User(email=email, role=Role.EMPLOYEE, employee_approved=employee_approved)
+def _create_user(email: str, employee_approved: bool, role: Role = Role.EMPLOYEE) -> int:
+    user = User(email=email, role=role, employee_approved=employee_approved)
     db.session.add(user)
     db.session.commit()
     return user.id
@@ -71,10 +71,69 @@ def test_unapproved_user_gets_403_on_api_guard(client, app):
     with client.session_transaction() as sess:
         sess["current_user_id"] = user_id
 
-    response = client.get("/auth/gate/EMPLOYEE")
+    response = client.get("/auth/gate/internal_dashboard/view")
 
     assert response.status_code == 403
     assert response.get_json() == {"error": "Employee approval is required."}
+
+
+def test_employee_denied_finance_action(client, app):
+    with app.app_context():
+        user_id = _create_user("employee@example.com", employee_approved=True, role=Role.EMPLOYEE)
+
+    with client.session_transaction() as sess:
+        sess["current_user_id"] = user_id
+
+    response = client.get("/auth/gate/finance_ledger/approve")
+
+    assert response.status_code == 403
+    assert response.get_json()["error"] == "Access denied."
+    assert "ACCESS_DENIED insufficient_role" in response.get_json()["detail"]
+    assert "required=FINANCE" in response.get_json()["detail"]
+
+
+def test_finance_can_approve_finance_action(client, app):
+    with app.app_context():
+        user_id = _create_user("finance@example.com", employee_approved=True, role=Role.FINANCE)
+
+    with client.session_transaction() as sess:
+        sess["current_user_id"] = user_id
+
+    response = client.get("/auth/gate/finance_ledger/approve")
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "resource": "finance_ledger",
+        "action": "approve",
+        "allowed": True,
+    }
+
+
+def test_supervisor_can_approve_team_action(client, app):
+    with app.app_context():
+        user_id = _create_user("supervisor@example.com", employee_approved=True, role=Role.SUPERVISOR)
+
+    with client.session_transaction() as sess:
+        sess["current_user_id"] = user_id
+
+    response = client.get("/auth/gate/team_approvals/approve")
+
+    assert response.status_code == 200
+    assert response.get_json()["allowed"] is True
+
+
+def test_unknown_policy_target_returns_403_with_audit_message(client, app):
+    with app.app_context():
+        user_id = _create_user("admin@example.com", employee_approved=True, role=Role.ADMIN)
+
+    with client.session_transaction() as sess:
+        sess["current_user_id"] = user_id
+
+    response = client.get("/auth/gate/unknown_resource/delete")
+
+    assert response.status_code == 403
+    assert response.get_json()["error"] == "Access denied."
+    assert "ACCESS_DENIED policy_missing" in response.get_json()["detail"]
 
 
 def test_login_stores_user_identity_in_session(client, app):

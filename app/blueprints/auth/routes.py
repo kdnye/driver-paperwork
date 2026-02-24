@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, g, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, g, jsonify, redirect, render_template, request, session, url_for
 
 from app import limiter
 from app.blueprints.auth.guards import _load_current_user, require_employee_approval
@@ -7,7 +7,8 @@ from app.rate_limits import (
     AUTH_LOGIN_SUBMIT_BURST_LIMIT,
     AUTH_LOGIN_SUBMIT_LIMIT,
 )
-from models import Role, User
+from app.services.rbac import evaluate_access
+from models import User
 
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -56,10 +57,13 @@ def internal_dashboard():
     return {"dashboard": "internal-tools"}
 
 
-@auth_bp.get("/gate/<role>")
+@auth_bp.get("/gate/<resource>/<action>")
 @require_employee_approval()
-def gate(role: str):
-    allowed_roles = {item.value for item in Role}
-    if role.upper() not in allowed_roles:
-        abort(403)
-    return {"role": role.upper(), "allowed": True}
+def gate(resource: str, action: str):
+    user = g.current_user
+    decision = evaluate_access(user_role=user.role, resource=resource, action=action)
+
+    if not decision.allowed:
+        return jsonify({"error": "Access denied.", "detail": decision.message}), 403
+
+    return {"resource": resource.lower(), "action": action.lower(), "allowed": True}
