@@ -3,7 +3,12 @@ from enum import Enum
 from app import db
 
 
+# Central registry for core table names.
+# Add new SQLAlchemy table constants here before using them in models/migrations.
 USERS_TABLE = "users"
+WORKFLOWS_TABLE = "workflows"
+QUOTES_TABLE = "quotes"
+AUDIT_LOGS_TABLE = "audit_logs"
 
 
 class Role(str, Enum):

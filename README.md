@@ -76,3 +76,6 @@ Adjust via Cloud Build substitutions if your organization uses different naming.
 - **Production/container:** `gunicorn --bind 0.0.0.0:${PORT} wsgi:app`
 
 The `wsgi.py` file keeps local bootstrap behavior while production execution is handled by the Docker `CMD`.
+
+## Developer Notes
+- Register every new database table name as a constant in `models.py` (with the other `*_TABLE` constants) before referencing it in SQLAlchemy models or migrations.
