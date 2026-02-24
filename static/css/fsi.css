@@ -76,3 +76,41 @@ body {
 [data-bs-theme='dark'] .fsi-navbar {
   background: #1e293b;
 }
+
+.fsi-account-menu {
+  position: relative;
+}
+
+.fsi-account-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  min-width: 12rem;
+  margin: 0;
+  padding: 0.35rem 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid rgba(66, 73, 91, 0.22);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-md);
+}
+
+.fsi-account-menu-list a {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  color: var(--fsi-text);
+  padding: 0.5rem 0.75rem;
+}
+
+.fsi-account-menu-list a:hover,
+.fsi-account-menu-list a:focus-visible {
+  background: #ecf0f8;
+  color: var(--fsi-navy);
+  outline: none;
+}
+
+[data-theme='dark'] .fsi-account-menu-list,
+[data-bs-theme='dark'] .fsi-account-menu-list {
+  background: #1e293b;
+}
