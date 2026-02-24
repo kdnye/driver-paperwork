@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from app import create_app, db
@@ -151,3 +153,16 @@ def test_login_stores_user_identity_in_session(client, app):
 
     with client.session_transaction() as sess:
         assert sess["current_user_id"] == user_id
+
+
+def test_login_template_loads_global_theme_script(client):
+    response = client.get('/auth/login')
+
+    assert response.status_code == 200
+    assert b'/static/js/theme.js' in response.data
+
+
+def test_base_template_references_theme_asset():
+    base_template = (Path(__file__).resolve().parents[1] / 'templates' / 'base.html').read_text()
+
+    assert "url_for('static', filename='js/theme.js')" in base_template
