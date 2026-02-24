@@ -12,6 +12,13 @@ class Role(str, Enum):
     FINANCE = "FINANCE"
     ADMIN = "ADMIN"
 
+class ReportStatus(Enum):
+    DRAFT = "DRAFT"
+    SUBMITTED = "SUBMITTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    PAID = "PAID"
+
 
 class User(db.Model):
     __tablename__ = USERS_TABLE
