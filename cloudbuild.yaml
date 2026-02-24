@@ -1,0 +1,40 @@
+steps:
+  - id: Build image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_IMAGE}
+      - .
+
+  - id: Push image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_IMAGE}
+
+  - id: Deploy to Cloud Run
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --project=${PROJECT_ID}
+      - --region=${_REGION}
+      - --platform=managed
+      - --image=${_IMAGE}
+      - --allow-unauthenticated
+      - --set-env-vars=APP_ENV=production,FSI_PRODUCTION=true
+      - --set-secrets=SECRET_KEY=${_SECRET_KEY_NAME}:latest,DATABASE_URL=${_DATABASE_URL_SECRET_NAME}:latest
+
+images:
+  - ${_IMAGE}
+
+substitutions:
+  _SERVICE_NAME: fsi-app
+  _REGION: us-central1
+  _REPOSITORY: fsi
+  _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${SHORT_SHA}
+  _SECRET_KEY_NAME: fsi-secret-key
+  _DATABASE_URL_SECRET_NAME: fsi-database-url
