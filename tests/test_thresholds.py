@@ -1,3 +1,5 @@
+import pytest
+
 from services.thresholds import evaluate_budget_cap, evaluate_weight_limit
 
 
@@ -45,3 +47,31 @@ def test_budget_cap_over_limit_is_blocked():
     assert status.state == "blocked"
     assert status.triggered is True
     assert "exceeded" in status.message
+
+
+@pytest.mark.parametrize(
+    "current,limit,buff,state",
+    [
+        (90, 100, 0.9, "warning"),
+        (89.99, 100, 0.9, "ok"),
+        (95, 100, 0.95, "warning"),
+        (94.99, 100, 0.95, "ok"),
+    ],
+)
+def test_weight_warning_buffer_boundaries(current, limit, buff, state):
+    result = evaluate_weight_limit(current_weight_lbs=current, limit_lbs=limit, warning_buffer_pct=buff)
+    assert result.state == state
+
+
+@pytest.mark.parametrize(
+    "current,cap,buff,state",
+    [
+        (900, 1000, 0.9, "warning"),
+        (899.99, 1000, 0.9, "ok"),
+        (975, 1000, 0.975, "warning"),
+        (974.99, 1000, 0.975, "ok"),
+    ],
+)
+def test_budget_warning_buffer_boundaries(current, cap, buff, state):
+    result = evaluate_budget_cap(current_total=current, cap=cap, warning_buffer_pct=buff)
+    assert result.state == state
