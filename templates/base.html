@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FSI App{% endblock %}</title>
+  <script>
+    (function () {
+      const stored = localStorage.getItem('theme');
+      const preferredDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = stored || (preferredDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-bs-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fsi.css') }}">
+</head>
+<body>
+  <nav class="fsi-navbar">
+    <div class="fsi-container">
+      <a class="fsi-brand" href="/">Freight Services Inc.</a>
+      <div class="fsi-nav-actions">
+        <a href="#" aria-label="Help" class="fsi-help">?</a>
+        <button class="fsi-secondary-btn">Account ▾</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="fsi-container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="fsi-footer">© {{ 2026 }} Freight Services Inc.</footer>
+</body>
+</html>
