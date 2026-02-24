@@ -4,15 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}FSI App{% endblock %}</title>
-  <script>
-    (function () {
-      const stored = localStorage.getItem('theme');
-      const preferredDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = stored || (preferredDark ? 'dark' : 'light');
-      document.documentElement.setAttribute('data-theme', theme);
-      document.documentElement.setAttribute('data-bs-theme', theme);
-    })();
-  </script>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;500;700&display=swap">
