@@ -6,14 +6,11 @@ from datetime import datetime
 class CouchdropService:
     @staticmethod
     def upload_driver_paperwork(user, file_storage):
+        # 1. Force a loud crash if the secret is missing or empty.
         raw_token = os.getenv("COUCHDROP_TOKEN")
-        
-        # 1. Proactive Debugging: Catch empty or missing secrets instantly
-        if not raw_token or not raw_token.strip():
-            logging.error("CRITICAL ERROR: COUCHDROP_TOKEN is missing or empty in the environment!")
-            return False
+        if not raw_token:
+            raise ValueError("CRITICAL: COUCHDROP_TOKEN environment variable is missing or empty. Check Secret Manager wiring.")
             
-        # 2. Strip hidden newlines injected by Google Secret Manager
         token = raw_token.strip()
         
         driver_name = f"{user.first_name} {user.last_name}"
@@ -21,12 +18,13 @@ class CouchdropService:
         
         remote_path = f"/Paperwork/{driver_name}/{date_str}/{file_storage.filename}"
         
-        # 3. Couchdrop FileIO officially expects the header named exactly "token"
+        # 2. Use the exact header format from the Couchdrop documentation
         headers = {
             "token": token,
             "Content-Type": "application/octet-stream"
         }
         
+        # 3. Path goes in query params for fileio
         params = {
             "path": remote_path
         }
@@ -34,6 +32,7 @@ class CouchdropService:
         file_bytes = file_storage.read()
         
         try:
+            # 4. Use the correct fileio subdomain
             response = requests.post(
                 "https://fileio.couchdrop.io/file/upload",
                 headers=headers,
