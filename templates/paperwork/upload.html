@@ -5,14 +5,71 @@
     <h1 class="fsi-display">Upload Driver Paperwork</h1>
     <p>Select up to 100 scanned documents for batch upload.</p>
     
-    <form method="post" enctype="multipart/form-data">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <form id="uploadForm" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token() }}"/>
         
         <div style="margin-bottom: 1rem;">
             <input type="file" name="scans" id="scans" multiple required>
         </div>
         
-        <button class="fsi-primary-btn" type="submit">Upload Batch</button>
+        <button class="fsi-primary-btn" id="uploadBtn" type="submit">Upload Batch</button>
+        <div id="uploadStatus" style="margin-top: 15px; font-weight: bold; color: var(--primary-color);"></div>
     </form>
 </section>
+
+<script>
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('scans');
+    const csrfToken = document.getElementById('csrf_token').value;
+    const uploadBtn = document.getElementById('uploadBtn');
+    const statusDiv = document.getElementById('uploadStatus');
+    
+    const files = fileInput.files;
+    if (files.length === 0) return;
+    if (files.length > 100) {
+        alert("Batch exceeds 100 file limit.");
+        return;
+    }
+    
+    uploadBtn.disabled = true;
+    let successCount = 0;
+    
+    // Process files sequentially to strictly bypass Cloud Run's 32MB payload limit
+    for (let i = 0; i < files.length; i++) {
+        statusDiv.innerText = `Processing document ${i + 1} of ${files.length}...`;
+        
+        const formData = new FormData();
+        formData.append('csrf_token', csrfToken);
+        formData.append('scans', files[i]);
+        
+        try {
+            const response = await fetch('{{ url_for("paperwork.upload") }}', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                body: formData
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                successCount += result.success_count;
+            } else {
+                console.error(`Failed on file: ${files[i].name}`);
+            }
+        } catch (error) {
+            console.error(`Network error on file: ${files[i].name}`, error);
+        }
+    }
+    
+    statusDiv.innerText = `Upload complete. ${successCount} files processed securely. Routing to history...`;
+    
+    // Redirect to history upon completion
+    setTimeout(() => {
+        window.location.href = "{{ url_for('paperwork.history') }}";
+    }, 1500);
+});
+</script>
 {% endblock %}
