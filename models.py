@@ -27,11 +27,12 @@ class ReportStatus(Enum):
 
 class User(db.Model):
     __tablename__ = USERS_TABLE
-
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(255), nullable=False, unique=True, index=True)
-    role = db.Column(db.Enum(Role), nullable=False, default=Role.EMPLOYEE)
-    employee_approved = db.Column(db.Boolean, nullable=False, default=False)
+    email = db.Column(db.String(255), nullable=False, unique=True)
+    first_name = db.Column(db.String(100))
+    last_name = db.Column(db.String(100))
+    role = db.Column(db.Enum(Role), default=Role.EMPLOYEE)
+    employee_approved = db.Column(db.Boolean, default=False)
 
     def can_access_portal(self) -> bool:
         return self.employee_approved
