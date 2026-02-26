@@ -1,12 +1,12 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Boolean, Enum as SQLALchemyEnum
 from sqlalchemy.orm import Mapped
 
-# Initialize db (ensure this is linked to your app factory in app/__init__.py)
-db = SQLAlchemy()
+# NEW: Import the initialized db from your main app. 
+# Do NOT use db = SQLAlchemy() here.
+from app import db
 
 # Table name constants
 # This MUST match the Expenses app to share the same user pool
