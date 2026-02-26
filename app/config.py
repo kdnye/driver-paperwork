@@ -32,13 +32,15 @@ def get_runtime_config() -> dict:
     db_pass = _get_env("DB_PASS", required_in_production=True).strip()
     db_name = _get_env("DB_NAME", required_in_production=True).strip()
     
-    # 2. Use SQLAlchemy URL.create to safely encode all special characters automatically
+    cloud_sql_con = "quote-tool-483716:us-central1:quote-postgres"
+
+    # 2. FIXED: Use 'query' to properly format the Unix Socket path for Cloud Run
     db_url = URL.create(
         drivername="postgresql+psycopg",
         username=db_user,
         password=db_pass,
         database=db_name,
-        host="/cloudsql/quote-tool-483716:us-central1:quote-postgres"
+        query={"host": f"/cloudsql/{cloud_sql_con}"}  # <--- This is the critical change
     )
 
     return {
