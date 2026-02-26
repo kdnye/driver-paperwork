@@ -3,7 +3,7 @@
   height: 34px;
   border-radius: 9999px;
   object-fit: cover;
-  border: 1px solid rgba(66, 73, 91, 0.22);
+  border: 1px solid var(--color-border);
 }
 
 .fsi-nav-user-name {
@@ -12,6 +12,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 500;
+  color: var(--nav-link);
 }
 
 .fsi-flashes {
@@ -25,12 +26,18 @@
 .fsi-flash {
   border-radius: 0.75rem;
   padding: 0.6rem 0.75rem;
-  border: 1px solid rgba(66, 73, 91, 0.22);
-  background: #fff;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .fsi-flash-success {
-  border-color: color-mix(in oklab, var(--fsi-teal) 40%, #fff);
+  border-color: color-mix(in oklab, var(--fsi-teal) 40%, transparent);
+}
+
+[data-theme='dark'] .fsi-flash-success,
+[data-bs-theme='dark'] .fsi-flash-success {
+  border-color: rgba(94, 234, 212, 0.4);
 }
 
 .fsi-form-grid {
@@ -41,10 +48,17 @@
 .fsi-input {
   width: 100%;
   margin-top: 0.35rem;
-  border: 1px solid rgba(66, 73, 91, 0.35);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  color: var(--color-text);
   border-radius: 0.55rem;
   min-height: 2.2rem;
   padding: 0.5rem 0.65rem;
+}
+
+.fsi-input:focus {
+  outline: 2px solid var(--btn-primary-bg);
+  border-color: transparent;
 }
 
 .fsi-checkbox-row {
@@ -65,5 +79,32 @@
   height: 96px;
   border-radius: 0.75rem;
   object-fit: cover;
-  border: 1px solid rgba(66, 73, 91, 0.22);
+  border: 1px solid var(--color-border);
+}
+
+/* History Upload Bubbles */
+.fsi-summary-success {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border-left: 4px solid #16a34a;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.fsi-summary-danger {
+  padding: 1rem;
+  border-left: 4px solid #dc2626;
+  background: #fef2f2;
+  color: #dc2626;
+}
+[data-theme='dark'] .fsi-summary-success,
+[data-bs-theme='dark'] .fsi-summary-success {
+  background: rgba(22, 163, 74, 0.15);
+  border-color: #4ade80;
+  color: #4ade80;
+}
+[data-theme='dark'] .fsi-summary-danger,
+[data-bs-theme='dark'] .fsi-summary-danger {
+  background: rgba(220, 38, 38, 0.15);
+  border-color: #f87171;
+  color: #f87171;
 }
