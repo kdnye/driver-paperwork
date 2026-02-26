@@ -31,20 +31,26 @@ def _get_env(name: str, default: str | None = None, required_in_production: bool
 
 
 def get_runtime_config() -> dict:
+    # 1. Retrieve individual components from Cloud Run secrets
+    db_user = os.getenv("DB_USER")
+    db_pass = os.getenv("DB_PASS")
+    db_name = os.getenv("DB_NAME")
+    
+    # 2. Use the established FSI Cloud SQL connection name
+    cloud_sql_con = "quote-tool-483716:us-central1:quote-postgres"
+
+    # 3. Construct the dynamic connection string
+    # This removes the need for a manual DATABASE_URL environment variable
+    database_url = f"postgresql+psycopg://{db_user}:{db_pass}@/{db_name}?host=/cloudsql/{cloud_sql_con}"
+
     return {
-        # Set by Secret Manager in production.
+        # Ensure the secret key matches the Expenses app for shared sessions
         "SECRET_KEY": _get_env("SECRET_KEY", "dev-only-change-me", required_in_production=True),
-        # SQLAlchemy/psycopg connection string set via Secret Manager in production.
-        "SQLALCHEMY_DATABASE_URI": _get_env(
-            "DATABASE_URL",
-            "postgresql+psycopg://localhost/fsi_app",
-            required_in_production=True,
-        ),
+        "SQLALCHEMY_DATABASE_URI": database_url,
         "SQLALCHEMY_TRACK_MODIFICATIONS": False,
         "DEBUG": _str_to_bool(os.getenv("DEBUG"), default=False),
-        # Cloud Run injects this automatically; local dev defaults to 8080.
         "PORT": int(os.getenv("PORT", "8080")),
-        # Optional hardening toggles.
         "SESSION_COOKIE_SECURE": _str_to_bool(os.getenv("SESSION_COOKIE_SECURE"), default=_is_production()),
         "REMEMBER_COOKIE_SECURE": _str_to_bool(os.getenv("REMEMBER_COOKIE_SECURE"), default=_is_production()),
+    }
     }
