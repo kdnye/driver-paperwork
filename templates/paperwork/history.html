@@ -1,8 +1,54 @@
 {% extends "base.html" %}
-{% block title %}Upload History | FSI{% endblock %}
+{% block title %}Upload Summary | FSI{% endblock %}
 {% block content %}
 <section class="fsi-card">
-    <h1 class="fsi-display">Upload History</h1>
-    <p>Upload history reporting will appear here.</p>
-    </section>
+    <h1 class="fsi-display">Batch Upload Summary</h1>
+    
+    <div id="summary-container" style="margin-top: 1rem;">
+        <p>Loading recent upload data...</p>
+    </div>
+    
+    <div style="margin-top: 2rem;">
+        <a href="{{ url_for('paperwork.upload') }}" class="fsi-primary-btn" style="text-decoration: none;">Upload More Documents</a>
+    </div>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const summaryContainer = document.getElementById("summary-container");
+    const rawData = sessionStorage.getItem("fsi_last_batch");
+    
+    if (!rawData) {
+        summaryContainer.innerHTML = "<p>No recent batch uploads found in this active browser session.</p>";
+        return;
+    }
+    
+    const data = JSON.parse(rawData);
+    let html = "";
+    
+    if (data.successful.length > 0) {
+        html += `
+            <div style="margin-bottom: 2rem; padding: 1rem; border-left: 4px solid #16a34a; background: #f0fdf4;">
+                <h3 style="color: #16a34a; margin-top: 0;">Successfully Uploaded (${data.successful.length})</h3>
+                <ul style="margin-bottom: 0;">
+                    ${data.successful.map(name => `<li>${name}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+    
+    if (data.failed.length > 0) {
+        html += `
+            <div style="padding: 1rem; border-left: 4px solid #dc2626; background: #fef2f2;">
+                <h3 style="color: #dc2626; margin-top: 0;">Failed to Upload (${data.failed.length})</h3>
+                <ul style="margin-bottom: 0;">
+                    ${data.failed.map(name => `<li>${name}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+    
+    summaryContainer.innerHTML = html;
+});
+</script>
 {% endblock %}
