@@ -6,28 +6,27 @@ from datetime import datetime
 class CouchdropService:
     @staticmethod
     def upload_driver_paperwork(user, file_storage):
-        token = os.getenv("COUCHDROP_TOKEN")
+        raw_token = os.getenv("COUCHDROP_TOKEN")
         
-        # Couchdrop usually requires you to send to a specific URL or use basic auth 
-        # with your username/token. 
+        # 1. Proactive Debugging: Catch empty or missing secrets instantly
+        if not raw_token or not raw_token.strip():
+            logging.error("CRITICAL ERROR: COUCHDROP_TOKEN is missing or empty in the environment!")
+            return False
+            
+        # 2. Strip hidden newlines injected by Google Secret Manager
+        token = raw_token.strip()
+        
         driver_name = f"{user.first_name} {user.last_name}"
         date_str = datetime.now().strftime("%Y-%m-%d")
         
-        # Determine the destination path inside Couchdrop
-        # Make sure the path starts with a slash
         remote_path = f"/Paperwork/{driver_name}/{date_str}/{file_storage.filename}"
         
-        # For Couchdrop v3 uploads, standard Basic Auth is required
-        # Note: Some accounts use an email instead of "token" for the username.
-        # Check your Couchdrop account settings if "token" doesn't work.
-        auth = ("token", token) 
-        
-        # Set Content-Type so it doesn't try to format it as a multipart form
+        # 3. Couchdrop FileIO officially expects the header named exactly "token"
         headers = {
+            "token": token,
             "Content-Type": "application/octet-stream"
         }
         
-        # The path goes in the query string
         params = {
             "path": remote_path
         }
@@ -35,10 +34,8 @@ class CouchdropService:
         file_bytes = file_storage.read()
         
         try:
-            # Using the v3 endpoint which is standard for HTTP POST uploads
             response = requests.post(
-                "https://api.couchdrop.io/v3/upload",
-                auth=auth,
+                "https://fileio.couchdrop.io/file/upload",
                 headers=headers,
                 params=params,
                 data=file_bytes
