@@ -34,12 +34,17 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     csrf.init_app(app)
     limiter.init_app(app)
 
+    # Register blueprints
     from app.blueprints.auth.routes import auth_bp
+    from app.blueprints.paperwork.routes import paperwork_bp 
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(paperwork_bp) # Ensure this is registered
 
+    # Update index to redirect to login instead of the boilerplate message
     @app.get("/")
     def index():
-        return "FSI boilerplate is ready."
+        from flask import redirect, url_for
+        return redirect(url_for("auth.login_page"))
 
     return app
