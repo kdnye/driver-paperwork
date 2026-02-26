@@ -1,7 +1,6 @@
 import os
 import requests
 import logging
-import base64
 from datetime import datetime
 
 class CouchdropService:
@@ -13,18 +12,15 @@ class CouchdropService:
         
         remote_path = f"/Paperwork/{driver_name}/{date_str}/{file_storage.filename}"
         
-        # Format the token correctly for Couchdrop's FileIO Basic Auth
-        # It expects "base64(token:)" where the password side is empty.
-        auth_str = f"{token}:"
-        b64_auth = base64.b64encode(auth_str.encode("utf-8")).decode("utf-8")
-        
+        # Only standard content headers here; NO auth headers
         headers = {
-            "Authorization": f"Basic {b64_auth}",
             "Content-Type": "application/octet-stream"
         }
         
+        # FIX: The FileIO endpoint requires the token to be passed as a query string parameter
         params = {
-            "path": remote_path
+            "path": remote_path,
+            "token": token  # Add token to the URL (?path=...&token=...)
         }
         
         file_bytes = file_storage.read()
