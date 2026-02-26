@@ -6,25 +6,41 @@ from datetime import datetime
 class CouchdropService:
     @staticmethod
     def upload_driver_paperwork(user, file_storage):
-        # 1. Force a loud crash if the secret is missing or empty.
         raw_token = os.getenv("COUCHDROP_TOKEN")
         if not raw_token:
-            raise ValueError("CRITICAL: COUCHDROP_TOKEN environment variable is missing or empty. Check Secret Manager wiring.")
+            raise ValueError("CRITICAL: COUCHDROP_TOKEN environment variable is missing or empty.")
             
         token = raw_token.strip()
         
         driver_name = f"{user.first_name} {user.last_name}"
         date_str = datetime.now().strftime("%Y-%m-%d")
         
-        remote_path = f"/Paperwork/{driver_name}/{date_str}/{file_storage.filename}"
+        # Target folder structure
+        folder_path = f"/Paperwork/{driver_name}/{date_str}"
+        remote_path = f"{folder_path}/{file_storage.filename}"
         
-        # 2. Use the exact header format from the Couchdrop documentation
+        # 1. Progressively create directories to prevent "Parent folder not found" 404s
+        parts = [p for p in folder_path.split("/") if p]
+        current_dir = ""
+        for part in parts:
+            current_dir += f"/{part}"
+            try:
+                requests.post(
+                    "https://fileio.couchdrop.io/file/mkdir",
+                    headers={"token": token},
+                    params={"path": current_dir}
+                )
+                # Responses are ignored here. If the folder already exists, it throws a non-200 
+                # status which is expected and perfectly fine to bypass.
+            except Exception as e:
+                logging.warning(f"Couchdrop mkdir failed for {current_dir}: {str(e)}")
+
+        # 2. Upload the raw file bytes into the newly verified folder tree
         headers = {
             "token": token,
             "Content-Type": "application/octet-stream"
         }
         
-        # 3. Path goes in query params for fileio
         params = {
             "path": remote_path
         }
@@ -32,7 +48,6 @@ class CouchdropService:
         file_bytes = file_storage.read()
         
         try:
-            # 4. Use the correct fileio subdomain
             response = requests.post(
                 "https://fileio.couchdrop.io/file/upload",
                 headers=headers,
