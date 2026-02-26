@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Batch Upload | FSI{% endblock %}
+{% block content %}
+<section class="fsi-card">
+    <h1 class="fsi-display">Upload Driver Paperwork</h1>
+    <p>Select up to 100 scanned documents for batch upload.</p>
+    
+    <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
+        <div style="margin-bottom: 1rem;">
+            <input type="file" name="scans" id="scans" multiple required>
+        </div>
+        
+        <button class="fsi-primary-btn" type="submit">Upload Batch</button>
+    </form>
+</section>
+{% endblock %}
