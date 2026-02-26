@@ -28,8 +28,8 @@ document.addEventListener("DOMContentLoaded", function() {
     
     if (data.successful.length > 0) {
         html += `
-            <div style="margin-bottom: 2rem; padding: 1rem; border-left: 4px solid #16a34a; background: #f0fdf4;">
-                <h3 style="color: #16a34a; margin-top: 0;">Successfully Uploaded (${data.successful.length})</h3>
+            <div class="fsi-summary-success">
+                <h3 style="margin-top: 0; color: inherit;">Successfully Uploaded (${data.successful.length})</h3>
                 <ul style="margin-bottom: 0;">
                     ${data.successful.map(name => `<li>${name}</li>`).join('')}
                 </ul>
@@ -39,8 +39,8 @@ document.addEventListener("DOMContentLoaded", function() {
     
     if (data.failed.length > 0) {
         html += `
-            <div style="padding: 1rem; border-left: 4px solid #dc2626; background: #fef2f2;">
-                <h3 style="color: #dc2626; margin-top: 0;">Failed to Upload (${data.failed.length})</h3>
+            <div class="fsi-summary-danger">
+                <h3 style="margin-top: 0; color: inherit;">Failed to Upload (${data.failed.length})</h3>
                 <ul style="margin-bottom: 0;">
                     ${data.failed.map(name => `<li>${name}</li>`).join('')}
                 </ul>
