@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Profile | FSI{% endblock %}
+{% block content %}
+<section class="fsi-card">
+  <h1 class="fsi-display">Profile</h1>
+
+  <div class="fsi-profile-header">
+    <img
+      class="fsi-profile-avatar"
+      src="{{ g.current_user.avatar_url or url_for('static', filename='img/default-avatar.svg') }}"
+      alt="Profile avatar"
+    >
+    <div>
+      <h2>{{ g.current_user.full_name or g.current_user.name or g.current_user.email }}</h2>
+      <p>{{ g.current_user.email }}</p>
+    </div>
+  </div>
+
+  <form method="post" novalidate class="fsi-form-grid">
+    {{ form.hidden_tag() }}
+    <label>{{ form.full_name.label }} {{ form.full_name(class="fsi-input") }}</label>
+    <label>{{ form.avatar_url.label }} {{ form.avatar_url(class="fsi-input") }}</label>
+    <label>{{ form.phone.label }} {{ form.phone(class="fsi-input") }}</label>
+    <label>{{ form.bio.label }} {{ form.bio(class="fsi-input", rows="4") }}</label>
+    <div>
+      {{ form.submit(class="fsi-primary-btn") }}
+    </div>
+  </form>
+</section>
+{% endblock %}

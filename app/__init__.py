@@ -32,9 +32,11 @@ def create_app(config_overrides: dict | None = None) -> Flask:
 
     # Register blueprints
     from app.blueprints.auth.routes import auth_bp
+    from app.blueprints.account.routes import account_bp
     from app.blueprints.paperwork.routes import paperwork_bp 
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(account_bp)
     app.register_blueprint(paperwork_bp)
 
     # Root redirect to login page

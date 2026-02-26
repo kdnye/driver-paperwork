@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Settings | FSI{% endblock %}
+{% block content %}
+<section class="fsi-card">
+  <h1 class="fsi-display">Settings</h1>
+
+  <form method="post" novalidate class="fsi-form-grid">
+    {{ form.hidden_tag() }}
+    <label>{{ form.theme.label }} {{ form.theme(class="fsi-input") }}</label>
+    <label class="fsi-checkbox-row">{{ form.email_notifications() }} {{ form.email_notifications.label }}</label>
+    <div>
+      {{ form.submit(class="fsi-primary-btn") }}
+    </div>
+  </form>
+</section>
+{% endblock %}

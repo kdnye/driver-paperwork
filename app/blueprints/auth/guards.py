@@ -38,3 +38,23 @@ def require_employee_approval(redirect_endpoint: str | None = None) -> Callable:
         return wrapped
 
     return decorator
+
+
+def require_authenticated(redirect_endpoint: str = "auth.login_page") -> Callable:
+    """Require a signed-in user session before allowing access."""
+
+    def decorator(view: Callable) -> Callable:
+        @wraps(view)
+        def wrapped(*args, **kwargs):
+            user = getattr(g, "current_user", None)
+            if user is not None:
+                return view(*args, **kwargs)
+
+            if redirect_endpoint:
+                return redirect(url_for(redirect_endpoint))
+
+            abort(401)
+
+        return wrapped
+
+    return decorator
