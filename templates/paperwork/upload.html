@@ -34,11 +34,11 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     }
     
     uploadBtn.disabled = true;
-    let successCount = 0;
+    let batchResults = { successful: [], failed: [] };
     
-    // Process files sequentially to strictly bypass Cloud Run's 32MB payload limit
+    // Process files sequentially
     for (let i = 0; i < files.length; i++) {
-        statusDiv.innerText = `Processing document ${i + 1} of ${files.length}...`;
+        statusDiv.innerText = `Processing document ${i + 1} of ${files.length}: ${files[i].name}...`;
         
         const formData = new FormData();
         formData.append('csrf_token', csrfToken);
@@ -47,29 +47,29 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
         try {
             const response = await fetch('{{ url_for("paperwork.upload") }}', {
                 method: 'POST',
-                headers: {
-                    'Accept': 'application/json'
-                },
+                headers: { 'Accept': 'application/json' },
                 body: formData
             });
             
             if (response.ok) {
-                const result = await response.json();
-                successCount += result.success_count;
+                batchResults.successful.push(files[i].name);
             } else {
-                console.error(`Failed on file: ${files[i].name}`);
+                batchResults.failed.push(files[i].name);
             }
         } catch (error) {
             console.error(`Network error on file: ${files[i].name}`, error);
+            batchResults.failed.push(files[i].name);
         }
     }
     
-    statusDiv.innerText = `Upload complete. ${successCount} files processed securely. Routing to history...`;
+    statusDiv.innerText = `Upload complete. Routing to summary...`;
     
-    // Redirect to history upon completion
+    // Store results in browser session to pass data to the history page
+    sessionStorage.setItem("fsi_last_batch", JSON.stringify(batchResults));
+    
     setTimeout(() => {
         window.location.href = "{{ url_for('paperwork.history') }}";
-    }, 1500);
+    }, 1000);
 });
 </script>
 {% endblock %}
