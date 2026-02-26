@@ -38,6 +38,10 @@ class User(db.Model):
     first_name = db.Column(db.String(80))
     last_name = db.Column(db.String(80))
     name = db.Column(db.String(120))  # Full name field used in some Expenses views
+    full_name = db.Column(db.String(120), nullable=True)
+    avatar_url = db.Column(db.String(512), nullable=True)
+    phone = db.Column(db.String(50), nullable=True)
+    bio = db.Column(db.Text, nullable=True)
     
     # Authentication & Access (Shared with Expenses App)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -54,6 +58,8 @@ class User(db.Model):
     )
     employee_approved: Mapped[bool] = db.Column(Boolean, nullable=False, default=False)
     is_active = db.Column(db.Boolean, default=True)
+    theme = db.Column(db.String(40), nullable=False, default="default")
+    email_notifications = db.Column(db.Boolean, nullable=False, default=True)
     
     # Metadata
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

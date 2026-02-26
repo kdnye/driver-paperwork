@@ -1,0 +1,69 @@
+.fsi-nav-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 1px solid rgba(66, 73, 91, 0.22);
+}
+
+.fsi-nav-user-name {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.fsi-flashes {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fsi-flash {
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(66, 73, 91, 0.22);
+  background: #fff;
+}
+
+.fsi-flash-success {
+  border-color: color-mix(in oklab, var(--fsi-teal) 40%, #fff);
+}
+
+.fsi-form-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.fsi-input {
+  width: 100%;
+  margin-top: 0.35rem;
+  border: 1px solid rgba(66, 73, 91, 0.35);
+  border-radius: 0.55rem;
+  min-height: 2.2rem;
+  padding: 0.5rem 0.65rem;
+}
+
+.fsi-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fsi-profile-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.fsi-profile-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 0.75rem;
+  object-fit: cover;
+  border: 1px solid rgba(66, 73, 91, 0.22);
+}
