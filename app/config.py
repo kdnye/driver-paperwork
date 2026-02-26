@@ -1,23 +1,19 @@
 import os
-import urllib.parse # Add this import at the top
 from dotenv import load_dotenv
-
+from sqlalchemy import URL # Add this import at the top
 
 load_dotenv()
-
 
 def _str_to_bool(value: str | None, default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
-
 def _is_production() -> bool:
     return _str_to_bool(os.getenv("FSI_PRODUCTION"), default=False) or os.getenv("APP_ENV", "").lower() in {
         "prod",
         "production",
     }
-
 
 def _get_env(name: str, default: str | None = None, required_in_production: bool = False) -> str:
     value = os.getenv(name, default)
@@ -30,23 +26,25 @@ def _get_env(name: str, default: str | None = None, required_in_production: bool
         raise RuntimeError(f"Environment variable '{name}' is not set.")
     return value
 
-
 def get_runtime_config() -> dict:
-    # 1. Use _get_env to ensure the app crashes loudly on startup if secrets are missing.
-    # 2. Use quote_plus to safely encode passwords containing special characters (like @ or /).
-    db_user = urllib.parse.quote_plus(_get_env("DB_USER", required_in_production=True))
-    db_pass = urllib.parse.quote_plus(_get_env("DB_PASS", required_in_production=True))
-    db_name = _get_env("DB_NAME", required_in_production=True)
+    # 1. Fetch and safely strip trailing newlines (\n) from Secret Manager
+    db_user = _get_env("DB_USER", required_in_production=True).strip()
+    db_pass = _get_env("DB_PASS", required_in_production=True).strip()
+    db_name = _get_env("DB_NAME", required_in_production=True).strip()
     
-    # Established FSI Cloud SQL connection name
-    cloud_sql_con = "quote-tool-483716:us-central1:quote-postgres"
-
-    # Safely constructed dynamic connection string
-    database_url = f"postgresql+psycopg://{db_user}:{db_pass}@/{db_name}?host=/cloudsql/{cloud_sql_con}"
+    # 2. Use SQLAlchemy URL.create to safely encode all special characters automatically
+    db_url = URL.create(
+        drivername="postgresql+psycopg",
+        username=db_user,
+        password=db_pass,
+        database=db_name,
+        host="/cloudsql/quote-tool-483716:us-central1:quote-postgres"
+    )
 
     return {
-        "SECRET_KEY": _get_env("SECRET_KEY", "dev-only-change-me", required_in_production=True),
-        "SQLALCHEMY_DATABASE_URI": database_url,
+        "SECRET_KEY": _get_env("SECRET_KEY", "dev-only-change-me", required_in_production=True).strip(),
+        # Render the URL object to a string securely
+        "SQLALCHEMY_DATABASE_URI": db_url.render_as_string(hide_password=False),
         "SQLALCHEMY_TRACK_MODIFICATIONS": False,
         "DEBUG": _str_to_bool(os.getenv("DEBUG"), default=False),
         "PORT": int(os.getenv("PORT", "8080")),
