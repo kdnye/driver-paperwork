@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, g
+from flask import Blueprint, render_template, request, flash, redirect, url_for, g, jsonify
 from app.blueprints.auth.guards import require_employee_approval
 from app.services.couchdrop import CouchdropService
 
@@ -9,20 +9,28 @@ paperwork_bp = Blueprint("paperwork", __name__)
 def upload():
     if request.method == "POST":
         files = request.files.getlist("scans")
+        is_ajax = request.headers.get("Accept") == "application/json"
+        
         if not files or files[0].filename == '':
+            if is_ajax: return jsonify({"error": "No files selected."}), 400
             flash("No files selected.")
             return redirect(request.url)
             
         if len(files) > 100:
+            if is_ajax: return jsonify({"error": "Batch exceeds 100 file limit."}), 400
             flash("Batch exceeds 100 file limit.")
             return redirect(request.url)
 
         success_count = 0
         for file in files:
-            # Service creates structure: /Paperwork/{Driver Name}/{Date}/
             if CouchdropService.upload_driver_paperwork(g.current_user, file):
                 success_count += 1
         
+        # Return lightweight JSON for sequential client-side uploads
+        if is_ajax:
+            return jsonify({"success_count": success_count}), 200
+        
+        # Fallback for standard synchronous post
         flash(f"Successfully uploaded {success_count} documents.")
         return redirect(url_for("paperwork.history"))
 
