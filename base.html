@@ -18,30 +18,30 @@
 </head>
 <body class="fsi-body">
 
-    <nav class="fsi-navbar">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand" href="/">FSI Paperwork Portal</a>
+  <nav class="fsi-navbar">
+    <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand" href="/">FSI Paperwork Portal</a>
+        
+        <div class="nav-actions d-flex align-items-center" style="gap: var(--space-6);">
+            <a class="nav-link" href="{{ url_for('paperwork.upload') }}">Upload</a>
+            <a class="nav-link" href="{{ url_for('paperwork.history') }}">Upload History</a>
             
-            <div class="nav-actions d-flex align-items-center" style="gap: var(--space-6);">
-                <a class="nav-link" href="{{ url_for('paperwork.upload') }}">Upload</a>
-                <a class="nav-link" href="{{ url_for('paperwork.history') }}">Upload History</a>
-                
-                <a href="/help" title="Support" class="help-icon">?</a>
-                
-                <div class="dropdown">
-                    <button class="btn fsi-btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        Account
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/auth/internal/dashboard">Admin Dashboard</a></li>
-                        <li><a class="dropdown-item" href="/account/settings">User Settings</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/auth/logout">Logout</a></li>
-                    </ul>
-                </div>
+            <a href="/help" title="Support" class="help-icon">?</a>
+            
+            <div class="dropdown">
+                <button class="btn fsi-btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Account
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="/auth/internal/dashboard">Admin Dashboard</a></li>
+                    <li><a class="dropdown-item" href="/account/settings">User Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/auth/logout">Logout</a></li>
+                </ul>
             </div>
         </div>
-    </nav>
+    </div>
+</nav>
 
     <main class="container py-4">
         {% with messages = get_flashed_messages() %}
