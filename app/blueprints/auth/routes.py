@@ -1,4 +1,5 @@
-from flask import Blueprint, abort, g, jsonify, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, g, jsonify, redirect, render_template, request, session, url_for, flash
+from werkzeug.security import check_password_hash
 
 from app import limiter
 from app.blueprints.auth.guards import _load_current_user, require_employee_approval
@@ -22,33 +23,38 @@ def attach_current_user():
 @auth_bp.get("/login")
 @limiter.limit(AUTH_LOGIN_PAGE_LIMIT)
 def login_page():
-    return render_template("auth/login.html")
+    return render_template("auth/login.html", title="Login")
 
 
 @auth_bp.post("/login")
-# Route-level overrides intentionally tighten credential endpoints beyond
-# app-level defaults to reduce brute-force and burst abuse risk.
 @limiter.limit(AUTH_LOGIN_SUBMIT_LIMIT)
 @limiter.limit(AUTH_LOGIN_SUBMIT_BURST_LIMIT)
 def login_submit():
     email = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "")
+    
     user = User.query.filter_by(email=email).first()
-    if user is None:
-        abort(401)
+    
+    # Cryptographically verify the password against the shared database hash
+    if user is None or not check_password_hash(user.password_hash, password):
+        flash("Invalid email or password.")
+        return redirect(url_for("auth.login_page"))
 
     session["current_user_id"] = user.id
-    return redirect(url_for("auth.post_login"))
+    
+    # Route directly to the paperwork app rather than the boilerplate endpoint
+    return redirect(url_for("paperwork.upload"))
+
+
+@auth_bp.get("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("auth.login_page"))
 
 
 @auth_bp.get("/pending-approval")
 def pending_approval():
-    return render_template("auth/pending_approval.html"), 403
-
-
-@auth_bp.get("/post-login")
-@require_employee_approval(redirect_endpoint="auth.pending_approval")
-def post_login():
-    return {"message": "Welcome to the employee portal."}
+    return render_template("auth/pending_approval.html", title="Pending Approval")
 
 
 @auth_bp.get("/internal/dashboard")
