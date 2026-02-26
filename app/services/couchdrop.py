@@ -13,8 +13,9 @@ class CouchdropService:
         # Determine the destination path inside Couchdrop
         remote_path = f"/Paperwork/{driver_name}/{date_str}/{file_storage.filename}"
         
+        # FIX: Change 'Authorization' to the custom 'token' header required by FileIO
         headers = {
-            "Authorization": f"Bearer {token}",
+            "token": token,  # <--- This must be named exactly "token"
             "Content-Type": "application/octet-stream"
         }
         
