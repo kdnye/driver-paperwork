@@ -5,6 +5,8 @@
   <h1 class="fsi-display">Employee Login</h1>
   <p>Sign in with your approved employee account.</p>
   <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    
     <label>Email <input type="email" name="email" required></label>
     <label>Password <input type="password" name="password" required></label>
     <button class="fsi-primary-btn" type="submit">Sign In</button>
