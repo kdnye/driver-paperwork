@@ -26,6 +26,22 @@ def _get_env(name: str, default: str | None = None, required_in_production: bool
         raise RuntimeError(f"Environment variable '{name}' is not set.")
     return value
 
+def _get_max_content_length_bytes() -> int:
+    """Cloud Run upload guard for POD photos to avoid memory pressure."""
+    default_bytes = 16 * 1024 * 1024
+    max_content_length_mb = os.getenv("MAX_CONTENT_LENGTH_MB")
+
+    if max_content_length_mb is None:
+        return default_bytes
+
+    try:
+        mb_value = int(max_content_length_mb.strip())
+        if mb_value <= 0:
+            return default_bytes
+        return mb_value * 1024 * 1024
+    except (TypeError, ValueError):
+        return default_bytes
+
 def get_runtime_config() -> dict:
     # 1. Fetch and safely strip trailing newlines (\n) from Secret Manager
     db_user = _get_env("DB_USER", required_in_production=True).strip()
@@ -50,6 +66,7 @@ def get_runtime_config() -> dict:
         "SQLALCHEMY_TRACK_MODIFICATIONS": False,
         "DEBUG": _str_to_bool(os.getenv("DEBUG"), default=False),
         "PORT": int(os.getenv("PORT", "8080")),
+        "MAX_CONTENT_LENGTH": _get_max_content_length_bytes(),
         "SESSION_COOKIE_SECURE": _str_to_bool(os.getenv("SESSION_COOKIE_SECURE"), default=_is_production()),
         "REMEMBER_COOKIE_SECURE": _str_to_bool(os.getenv("REMEMBER_COOKIE_SECURE"), default=_is_production()),
     }
