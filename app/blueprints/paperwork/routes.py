@@ -1,8 +1,9 @@
 import base64
 import binascii
 import io
+from urllib.parse import urlparse
 
-from flask import Blueprint, render_template, request, flash, redirect, url_for, g, jsonify
+from flask import Blueprint, render_template, request, flash, redirect, url_for, g, jsonify, session
 from app.blueprints.auth.guards import require_employee_approval
 from app.services.couchdrop import CouchdropService
 from werkzeug.datastructures import FileStorage
@@ -35,6 +36,76 @@ def _build_generated_upload(encoded_file, default_filename="generated-upload.bin
     upload = FileStorage(stream=stream, filename=filename, content_type=content_type)
     upload.stream.seek(0)
     return upload
+
+
+def _coerce_http_url(value):
+    if not isinstance(value, str):
+        return None
+
+    candidate = value.strip()
+    if not candidate:
+        return None
+
+    parsed = urlparse(candidate)
+    if parsed.scheme not in {"http", "https"}:
+        return None
+    if not parsed.netloc:
+        return None
+
+    return candidate
+
+
+def _extract_pod_links(payload, generated_files):
+    pod_picture_url = _coerce_http_url(payload.get("pod_picture_url"))
+    signature_url = _coerce_http_url(payload.get("captured_signature_url"))
+
+    for generated_file in generated_files:
+        if not isinstance(generated_file, dict):
+            continue
+
+        normalized_name = (generated_file.get("filename") or "").lower()
+        file_role = (generated_file.get("type") or generated_file.get("role") or "").lower()
+        file_url = _coerce_http_url(
+            generated_file.get("url")
+            or generated_file.get("file_url")
+            or generated_file.get("download_url")
+        )
+        if not file_url:
+            continue
+
+        descriptor = f"{normalized_name} {file_role}"
+        if not pod_picture_url and any(token in descriptor for token in ["picture", "photo", "image"]):
+            pod_picture_url = file_url
+        if not signature_url and "signature" in descriptor:
+            signature_url = file_url
+
+    return pod_picture_url, signature_url
+
+
+def _record_pod_history(payload, generated_files):
+    pod_picture_url, signature_url = _extract_pod_links(payload, generated_files)
+    if not pod_picture_url and not signature_url:
+        return
+
+    pod_reference = (
+        payload.get("pod_reference")
+        or payload.get("pod_id")
+        or payload.get("pod_number")
+        or payload.get("delivery_id")
+        or "Unknown POD"
+    )
+
+    existing = session.get("pod_history") or []
+    existing.insert(
+        0,
+        {
+            "pod_reference": str(pod_reference),
+            "pod_picture_url": pod_picture_url,
+            "captured_signature_url": signature_url,
+        },
+    )
+    session["pod_history"] = existing[:20]
+    session.modified = True
 
 @paperwork_bp.route("/upload", methods=["GET", "POST"])
 @require_employee_approval()
@@ -71,7 +142,11 @@ def upload():
 @paperwork_bp.get("/history")
 @require_employee_approval()
 def history():
-    return render_template("paperwork/history.html", title="Upload History")
+    return render_template(
+        "paperwork/history.html",
+        title="Upload History",
+        pod_history=session.get("pod_history") or [],
+    )
 
 
 @paperwork_bp.post("/pod/submit")
@@ -105,5 +180,7 @@ def submit_pod():
 
     if success_count != len(uploads):
         return jsonify({"error": "One or more POD files failed to upload."}), 502
+
+    _record_pod_history(payload, generated_files)
 
     return jsonify({"success_count": success_count}), 200
