@@ -4,22 +4,22 @@
 <section class="fsi-card">
     <h1 class="fsi-display">Batch Upload Summary</h1>
     
-    <div id="summary-container" style="margin-top: 1rem;">
+    <div id="summary-container" class="fsi-status-line">
         <p>Loading recent upload data...</p>
     </div>
     
-    <div style="margin-top: 2rem;">
-        <a href="{{ url_for('paperwork.upload') }}" class="fsi-primary-btn" style="text-decoration: none;">Upload More Documents</a>
+    <div class="fsi-form-actions">
+        <a href="{{ url_for('paperwork.upload') }}" class="fsi-primary-btn">Upload More Documents</a>
     </div>
 </section>
 
-<section class="fsi-card" style="margin-top: 1rem;">
-    <h2 class="fsi-display" style="font-size: 1.6rem; margin-bottom: 0.75rem;">POD History</h2>
+<section class="fsi-card">
+    <h2 class="fsi-display">POD History</h2>
 
     {% if pod_history %}
-        <ul>
+        <ul class="fsi-list-tight">
             {% for pod in pod_history %}
-                <li style="margin-bottom: 0.75rem;">
+                <li class="fsi-history-list-item">
                     <strong>{{ pod.pod_reference }}</strong>
                     <div>
                         {% if pod.pod_picture_url %}
@@ -58,8 +58,8 @@ document.addEventListener("DOMContentLoaded", function() {
     if (data.successful.length > 0) {
         html += `
             <div class="fsi-summary-success">
-                <h3 style="margin-top: 0; color: inherit;">Successfully Uploaded (${data.successful.length})</h3>
-                <ul style="margin-bottom: 0;">
+                <h3 class="fsi-summary-title">Successfully Uploaded (${data.successful.length})</h3>
+                <ul class="fsi-list-tight">
                     ${data.successful.map(name => `<li>${name}</li>`).join('')}
                 </ul>
             </div>
@@ -69,8 +69,8 @@ document.addEventListener("DOMContentLoaded", function() {
     if (data.failed.length > 0) {
         html += `
             <div class="fsi-summary-danger">
-                <h3 style="margin-top: 0; color: inherit;">Failed to Upload (${data.failed.length})</h3>
-                <ul style="margin-bottom: 0;">
+                <h3 class="fsi-summary-title">Failed to Upload (${data.failed.length})</h3>
+                <ul class="fsi-list-tight">
                     ${data.failed.map(name => `<li>${name}</li>`).join('')}
                 </ul>
             </div>

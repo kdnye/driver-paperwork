@@ -1,15 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Login | FSI{% endblock %}
 {% block content %}
-<section class="fsi-card">
+<section class="fsi-card fsi-card--narrow">
   <h1 class="fsi-display">Employee Login</h1>
   <p>Sign in with your approved employee account.</p>
-  <form method="post">
+  <form method="post" class="fsi-form-grid" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    
-    <label>Email <input type="email" name="email" required></label>
-    <label>Password <input type="password" name="password" required></label>
-    <button class="fsi-primary-btn" type="submit">Sign In</button>
+
+    <div class="fsi-form-field">
+      <label for="email">Email</label>
+      <input class="fsi-input" id="email" type="email" name="email" required autocomplete="email">
+    </div>
+    <div class="fsi-form-field">
+      <label for="password">Password</label>
+      <input class="fsi-input" id="password" type="password" name="password" required autocomplete="current-password">
+    </div>
+    <div class="fsi-form-actions">
+      <button class="fsi-primary-btn" type="submit">Sign In</button>
+    </div>
   </form>
 </section>
 {% endblock %}

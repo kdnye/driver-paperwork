@@ -18,11 +18,11 @@
 
   <form method="post" novalidate class="fsi-form-grid">
     {{ form.hidden_tag() }}
-    <label>{{ form.full_name.label }} {{ form.full_name(class="fsi-input") }}</label>
-    <label>{{ form.avatar_url.label }} {{ form.avatar_url(class="fsi-input") }}</label>
-    <label>{{ form.phone.label }} {{ form.phone(class="fsi-input") }}</label>
-    <label>{{ form.bio.label }} {{ form.bio(class="fsi-input", rows="4") }}</label>
-    <div>
+    <div class="fsi-form-field">{{ form.full_name.label }} {{ form.full_name(class="fsi-input") }}</div>
+    <div class="fsi-form-field">{{ form.avatar_url.label }} {{ form.avatar_url(class="fsi-input") }}</div>
+    <div class="fsi-form-field">{{ form.phone.label }} {{ form.phone(class="fsi-input") }}</div>
+    <div class="fsi-form-field">{{ form.bio.label }} {{ form.bio(class="fsi-input", rows="4") }}</div>
+    <div class="fsi-form-actions">
       {{ form.submit(class="fsi-primary-btn") }}
     </div>
   </form>
