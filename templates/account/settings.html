@@ -6,9 +6,9 @@
 
   <form method="post" novalidate class="fsi-form-grid">
     {{ form.hidden_tag() }}
-    <label>{{ form.theme.label }} {{ form.theme(class="fsi-input") }}</label>
+    <div class="fsi-form-field">{{ form.theme.label }} {{ form.theme(class="fsi-input") }}</div>
     <label class="fsi-checkbox-row">{{ form.email_notifications() }} {{ form.email_notifications.label }}</label>
-    <div>
+    <div class="fsi-form-actions">
       {{ form.submit(class="fsi-primary-btn") }}
     </div>
   </form>
