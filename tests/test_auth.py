@@ -54,3 +54,36 @@ def test_base_template_references_theme_asset():
     base_template = (Path(__file__).resolve().parents[1] / "templates" / "base.html").read_text()
 
     assert "url_for('static', filename='js/theme.js')" in base_template
+
+
+def test_root_redirects_to_login_when_not_authenticated(client):
+    response = client.get("/", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/auth/login")
+
+
+def test_root_redirects_to_upload_when_authenticated(app, client):
+    from werkzeug.security import generate_password_hash
+
+    from app import db
+    from models import User
+
+    with app.app_context():
+        user = User(
+            email="root-redirect@example.com",
+            password_hash=generate_password_hash("test-password"),
+            employee_approved=True,
+            role="EMPLOYEE",
+        )
+        db.session.add(user)
+        db.session.commit()
+        user_id = user.id
+
+    with client.session_transaction() as sess:
+        sess["current_user_id"] = user_id
+
+    response = client.get("/", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/upload")

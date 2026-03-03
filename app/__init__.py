@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for
+from flask import Flask, g, redirect, url_for
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
@@ -39,9 +39,12 @@ def create_app(config_overrides: dict | None = None) -> Flask:
     app.register_blueprint(account_bp)
     app.register_blueprint(paperwork_bp)
 
-    # Root redirect to login page
+    # Root redirect based on whether the user is currently signed in.
     @app.get("/")
     def index():
+        if getattr(g, "current_user", None) is not None:
+            return redirect(url_for("paperwork.upload"))
+
         return redirect(url_for("auth.login_page"))
 
     return app
