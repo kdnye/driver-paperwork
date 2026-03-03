@@ -24,7 +24,9 @@ class CouchdropService:
             "Content-Type": "application/octet-stream"
         }
         
-        # Read file into memory once so it can be retried without re-seeking
+        # Reset stream position in case validation/routes already consumed bytes.
+        # Then read into memory once so retries can reuse identical payload bytes.
+        file_storage.seek(0)
         file_bytes = file_storage.read()
         
         try:
