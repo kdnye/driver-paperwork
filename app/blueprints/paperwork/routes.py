@@ -4,8 +4,10 @@ import io
 from urllib.parse import urlparse
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, g, jsonify, session
+from app import db
 from app.blueprints.auth.guards import require_employee_approval
 from app.services.couchdrop import CouchdropService
+from models import PodSubmission
 from werkzeug.datastructures import FileStorage
 
 paperwork_bp = Blueprint("paperwork", __name__)
@@ -87,7 +89,23 @@ def _record_pod_history(payload, generated_files):
     if not pod_picture_url and not signature_url:
         return
 
-    pod_reference = (
+    pod_reference = _resolve_pod_reference(payload)
+
+    existing = session.get("pod_history") or []
+    existing.insert(
+        0,
+        {
+            "pod_reference": pod_reference,
+            "pod_picture_url": pod_picture_url,
+            "captured_signature_url": signature_url,
+        },
+    )
+    session["pod_history"] = existing[:20]
+    session.modified = True
+
+
+def _resolve_pod_reference(payload):
+    return str(
         payload.get("pod_reference")
         or payload.get("pod_id")
         or payload.get("pod_number")
@@ -95,17 +113,31 @@ def _record_pod_history(payload, generated_files):
         or "Unknown POD"
     )
 
-    existing = session.get("pod_history") or []
-    existing.insert(
-        0,
-        {
-            "pod_reference": str(pod_reference),
-            "pod_picture_url": pod_picture_url,
-            "captured_signature_url": signature_url,
-        },
-    )
-    session["pod_history"] = existing[:20]
-    session.modified = True
+
+def _persist_pod_submissions(payload, generated_files, uploaded_uris):
+    pod_picture_url, signature_url = _extract_pod_links(payload, generated_files)
+    pod_reference = _resolve_pod_reference(payload)
+
+    records = []
+    for uri in uploaded_uris:
+        if not isinstance(uri, str) or not uri.strip():
+            raise ValueError("POD upload did not return a valid file URI.")
+
+        records.append(
+            PodSubmission(
+                user_id=g.current_user.id,
+                pod_reference=pod_reference,
+                uploaded_file_uri=uri.strip(),
+                pod_picture_url=pod_picture_url,
+                captured_signature_url=signature_url,
+            )
+        )
+
+    if not records:
+        raise ValueError("No POD files were persisted because no valid upload URIs were returned.")
+
+    db.session.add_all(records)
+    db.session.commit()
 
 @paperwork_bp.route("/upload", methods=["GET", "POST"])
 @require_employee_approval()
@@ -174,12 +206,23 @@ def submit_pod():
         upload.stream.seek(0)
 
     success_count = 0
-    for upload in uploads:
-        if CouchdropService.upload_driver_paperwork(g.current_user, upload):
+    uploaded_uris = []
+    try:
+        for upload in uploads:
+            uploaded_uri = CouchdropService.upload_driver_paperwork(g.current_user, upload)
+            if not uploaded_uri:
+                raise ValueError("One or more POD files failed to upload.")
+
+            uploaded_uris.append(uploaded_uri)
             success_count += 1
 
-    if success_count != len(uploads):
-        return jsonify({"error": "One or more POD files failed to upload."}), 502
+        _persist_pod_submissions(payload, generated_files, uploaded_uris)
+    except ValueError as exc:
+        db.session.rollback()
+        return jsonify({"error": f"POD submission rolled back: {exc}"}), 422
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "POD submission rolled back due to an internal persistence error."}), 500
 
     _record_pod_history(payload, generated_files)
 

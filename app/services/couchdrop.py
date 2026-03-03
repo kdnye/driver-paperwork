@@ -86,7 +86,7 @@ class CouchdropService:
                 logging.error(f"Couchdrop Upload Failed [{response.status_code}]: {response.text}")
                 return False
                 
-            return True
+            return remote_path
             
         except Exception as e:
             logging.error(f"Couchdrop Connection Error: {str(e)}")
