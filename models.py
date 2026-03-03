@@ -13,6 +13,7 @@ USERS_TABLE = "users"
 WORKFLOWS_TABLE = "workflows"
 QUOTES_TABLE = "quotes"
 AUDIT_LOGS_TABLE = "audit_logs"
+POD_SUBMISSIONS_TABLE = "pod_submissions"
 
 class Role(str, Enum):
     """Matches the enum values in the Expenses app user_role type."""
@@ -59,3 +60,17 @@ class User(db.Model):
     def can_access_portal(self) -> bool:
         """Standard FSI guard check."""
         return self.employee_approved and self.is_active
+
+
+class PodSubmission(db.Model):
+    """Persists POD metadata and uploaded file URI for audit/history purposes."""
+
+    __tablename__ = POD_SUBMISSIONS_TABLE
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey(f"{USERS_TABLE}.id"), nullable=False, index=True)
+    pod_reference = db.Column(db.String(120), nullable=False)
+    uploaded_file_uri = db.Column(db.String(1024), nullable=False)
+    pod_picture_url = db.Column(db.String(1024), nullable=True)
+    captured_signature_url = db.Column(db.String(1024), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)

@@ -1,5 +1,5 @@
 from app import db
-from models import User
+from models import PodSubmission, User
 
 
 def _create_session_user(client, email="pod-history@example.com"):
@@ -18,7 +18,7 @@ def test_submit_pod_records_picture_and_signature_links(client, monkeypatch):
 
     monkeypatch.setattr(
         "app.blueprints.paperwork.routes.CouchdropService.upload_driver_paperwork",
-        lambda *_args, **_kwargs: True,
+        lambda *_args, **_kwargs: "/Paperwork/Driver/POD-7781-file.bin",
     )
 
     payload = {
@@ -41,10 +41,39 @@ def test_submit_pod_records_picture_and_signature_links(client, monkeypatch):
 
     assert response.status_code == 200
 
+    saved = PodSubmission.query.filter_by(pod_reference="POD-7781").all()
+    assert len(saved) == 2
+    assert all(record.uploaded_file_uri for record in saved)
+
     with client.session_transaction() as sess:
         assert sess["pod_history"][0]["pod_reference"] == "POD-7781"
         assert sess["pod_history"][0]["pod_picture_url"].endswith("picture.jpg")
         assert sess["pod_history"][0]["captured_signature_url"].endswith("signature.png")
+
+
+def test_submit_pod_rolls_back_when_upload_uri_is_missing(client, monkeypatch):
+    _create_session_user(client, email="pod-rollback@example.com")
+
+    monkeypatch.setattr(
+        "app.blueprints.paperwork.routes.CouchdropService.upload_driver_paperwork",
+        lambda *_args, **_kwargs: None,
+    )
+
+    payload = {
+        "pod_id": "POD-ROLLBACK-1",
+        "generated_files": [
+            {
+                "filename": "POD-ROLLBACK-1-picture.jpg",
+                "content_base64": "aGVsbG8=",
+            }
+        ],
+    }
+
+    response = client.post("/pod/submit", json=payload)
+
+    assert response.status_code == 422
+    assert "rolled back" in response.get_json()["error"].lower()
+    assert PodSubmission.query.filter_by(pod_reference="POD-ROLLBACK-1").count() == 0
 
 
 def test_history_page_renders_pod_links(client):
