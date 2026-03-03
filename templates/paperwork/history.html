@@ -13,6 +13,35 @@
     </div>
 </section>
 
+<section class="fsi-card" style="margin-top: 1rem;">
+    <h2 class="fsi-display" style="font-size: 1.6rem; margin-bottom: 0.75rem;">POD History</h2>
+
+    {% if pod_history %}
+        <ul>
+            {% for pod in pod_history %}
+                <li style="margin-bottom: 0.75rem;">
+                    <strong>{{ pod.pod_reference }}</strong>
+                    <div>
+                        {% if pod.pod_picture_url %}
+                            <a href="{{ pod.pod_picture_url }}" target="_blank" rel="noopener noreferrer">POD Picture</a>
+                        {% else %}
+                            <span>POD Picture unavailable</span>
+                        {% endif %}
+                        &nbsp;|&nbsp;
+                        {% if pod.captured_signature_url %}
+                            <a href="{{ pod.captured_signature_url }}" target="_blank" rel="noopener noreferrer">Captured Signature</a>
+                        {% else %}
+                            <span>Captured Signature unavailable</span>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No POD history available for this browser session yet.</p>
+    {% endif %}
+</section>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const summaryContainer = document.getElementById("summary-container");
