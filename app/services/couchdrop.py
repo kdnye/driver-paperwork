@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import datetime
+from urllib.parse import urljoin
 
 import requests
 
@@ -34,6 +35,11 @@ def _prepare_upload_payload(file_storage):
 class CouchdropService:
     _validated_paths = set()
 
+    @staticmethod
+    def _api_url(path):
+        base_url = (os.getenv("COUCHDROP_BASE_URL") or "https://fileio.couchdrop.io").strip().rstrip("/") + "/"
+        return urljoin(base_url, path.lstrip("/"))
+
     @classmethod
     def _ensure_couchdrop_path_exists(cls, token, destination_path):
         normalized_path = destination_path.strip()
@@ -48,7 +54,7 @@ class CouchdropService:
             raise ValueError("destination_path must include at least one folder segment.")
 
         current_path = ""
-        headers = {"token": token}
+        headers = {"token": token, "Content-Type": "application/octet-stream"}
 
         for segment in segments:
             current_path = f"{current_path}/{segment}" if current_path else f"/{segment}"
@@ -57,7 +63,7 @@ class CouchdropService:
                 continue
 
             check_response = requests.get(
-                "https://fileio.couchdrop.io/file/stat",
+                cls._api_url("/file/stat"),
                 headers=headers,
                 params={"path": current_path}
             )
@@ -67,7 +73,7 @@ class CouchdropService:
                 continue
 
             create_response = requests.post(
-                "https://fileio.couchdrop.io/file/mkdir",
+                cls._api_url("/file/mkdir"),
                 headers=headers,
                 params={"path": current_path}
             )
@@ -101,7 +107,7 @@ class CouchdropService:
         folder_path = f"/Paperwork/{driver_name}/{date_str}"
         remote_path = f"{folder_path}/{file_storage.filename}"
         
-        headers = {"token": token}
+        headers = {"token": token, "Content-Type": "application/octet-stream"}
         
         payload_bytes, payload_size = _prepare_upload_payload(file_storage)
         if payload_size <= 0:
@@ -118,7 +124,7 @@ class CouchdropService:
                 return False
 
             response = requests.post(
-                "https://fileio.couchdrop.io/file/upload",
+                CouchdropService._api_url("/file/upload"),
                 headers=headers,
                 params={"path": remote_path},
                 files={

@@ -23,9 +23,9 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
 
-    def fake_post(url, headers=None, params=None, files=None):
+    def fake_post(url, headers=None, params=None, data=None, files=None):
         if url.endswith("/file/upload"):
-            sent_payloads.append(files["file"][1])
+            sent_payloads.append(data)
         return DummyResponse(201)
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", fake_get)
@@ -44,17 +44,17 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
     assert sent_payloads[0] == b"important-pdf-bytes"
 
 
-def test_upload_driver_paperwork_uses_multipart_file_upload(monkeypatch):
+def test_upload_driver_paperwork_uses_octet_stream_body_upload(monkeypatch):
     monkeypatch.setenv("COUCHDROP_TOKEN", "test-token")
     CouchdropService._validated_paths.clear()
 
-    captured_files = []
+    captured_requests = []
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
 
-    def fake_post(url, headers=None, params=None, files=None):
+    def fake_post(url, headers=None, params=None, data=None, files=None):
         if url.endswith("/file/upload"):
-            captured_files.append(files)
+            captured_requests.append({"headers": headers, "params": params, "data": data, "files": files})
         return DummyResponse(201)
 
     monkeypatch.setattr("app.services.couchdrop.requests.post", fake_post)
