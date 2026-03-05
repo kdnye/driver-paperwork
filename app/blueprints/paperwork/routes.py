@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from app import db
 from app.blueprints.auth.guards import require_employee_approval
 from app.services.couchdrop import CouchdropService
+from app.services.gcs import generate_signed_url
 from models import PodSubmission
 from werkzeug.datastructures import FileStorage
 
@@ -58,8 +59,12 @@ def _coerce_http_url(value):
 
 
 def _extract_pod_links(payload, generated_files):
-    pod_picture_url = _coerce_http_url(payload.get("pod_picture_url"))
-    signature_url = _coerce_http_url(payload.get("captured_signature_url"))
+    pod_picture_url = _resolve_public_url(
+        payload.get("pod_picture_url") or payload.get("photo_blob_name")
+    )
+    signature_url = _resolve_public_url(
+        payload.get("captured_signature_url") or payload.get("signature_blob_name")
+    )
 
     for generated_file in generated_files:
         if not isinstance(generated_file, dict):
@@ -67,10 +72,13 @@ def _extract_pod_links(payload, generated_files):
 
         normalized_name = (generated_file.get("filename") or "").lower()
         file_role = (generated_file.get("type") or generated_file.get("role") or "").lower()
-        file_url = _coerce_http_url(
+        file_url = _resolve_public_url(
             generated_file.get("url")
             or generated_file.get("file_url")
             or generated_file.get("download_url")
+            or generated_file.get("blob_name")
+            or generated_file.get("path")
+            or generated_file.get("uri")
         )
         if not file_url:
             continue
@@ -82,6 +90,17 @@ def _extract_pod_links(payload, generated_files):
             signature_url = file_url
 
     return pod_picture_url, signature_url
+
+
+def _resolve_public_url(value):
+    url = _coerce_http_url(value)
+    if url:
+        return url
+
+    if not isinstance(value, str):
+        return None
+
+    return generate_signed_url(value)
 
 
 def _record_pod_history(payload, generated_files):
