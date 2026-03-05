@@ -127,7 +127,13 @@ class CouchdropService:
                 CouchdropService._api_url("/file/upload"),
                 headers=headers,
                 params={"path": remote_path},
-                data=payload_bytes,
+                files={
+                    "file": (
+                        file_storage.filename,
+                        payload_bytes,
+                        getattr(file_storage, "content_type", None) or "application/octet-stream",
+                    )
+                },
             )
             
             if response.status_code not in (200, 201):
