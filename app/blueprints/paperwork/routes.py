@@ -14,6 +14,21 @@ from werkzeug.datastructures import FileStorage
 paperwork_bp = Blueprint("paperwork", __name__)
 
 
+def _get_stream_size(file_storage):
+    stream = getattr(file_storage, "stream", None)
+    if stream is None or not hasattr(stream, "seek"):
+        return None
+
+    try:
+        current = stream.tell()
+        stream.seek(0, io.SEEK_END)
+        size = stream.tell()
+        stream.seek(current)
+        return size
+    except Exception:
+        return None
+
+
 def _build_generated_upload(encoded_file, default_filename="generated-upload.bin"):
     if not isinstance(encoded_file, dict):
         raise ValueError("Each generated file payload must be an object.")
@@ -176,12 +191,26 @@ def upload():
             return redirect(request.url)
 
         success_count = 0
+        failure_count = 0
         for file in files:
+            if not file or not file.filename:
+                failure_count += 1
+                continue
+
+            file_size = _get_stream_size(file)
+            if file_size == 0:
+                failure_count += 1
+                continue
+
             if CouchdropService.upload_driver_paperwork(g.current_user, file):
                 success_count += 1
-        
+            else:
+                failure_count += 1
+
         # Return lightweight JSON for sequential client-side uploads
         if is_ajax:
+            if failure_count > 0:
+                return jsonify({"error": "Upload failed.", "success_count": success_count}), 422
             return jsonify({"success_count": success_count}), 200
         
         # Fallback for standard synchronous post
