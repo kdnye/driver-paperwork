@@ -108,10 +108,7 @@ class CouchdropService:
         folder_path = f"/Paperwork/{driver_name}/{date_str}"
         remote_path = f"{folder_path}/{file_storage.filename}"
         
-        headers = {
-            "token": token,
-            "Content-Type": "application/octet-stream"
-        }
+        headers = {"token": token}
         
         # Reset stream position in case validation/routes already consumed bytes.
         # Read once into bytes so the request body is deterministic.
@@ -133,7 +130,13 @@ class CouchdropService:
                 "https://fileio.couchdrop.io/file/upload",
                 headers=headers,
                 params={"path": remote_path},
-                data=file_bytes
+                files={
+                    "file": (
+                        file_storage.filename,
+                        file_bytes,
+                        getattr(file_storage, "content_type", None) or "application/octet-stream",
+                    )
+                },
             )
             
             if response.status_code not in (200, 201):
