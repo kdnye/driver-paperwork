@@ -96,3 +96,42 @@ def test_history_page_renders_pod_links(client):
     assert b"Captured Signature" in response.data
     assert b"POD-009-picture.jpg" in response.data
     assert b"POD-009-signature.png" in response.data
+
+
+def test_submit_pod_signs_blob_names_into_public_urls(client, monkeypatch):
+    _create_session_user(client, email="pod-signed-url@example.com")
+
+    monkeypatch.setattr(
+        "app.blueprints.paperwork.routes.CouchdropService.upload_driver_paperwork",
+        lambda *_args, **_kwargs: "/Paperwork/Driver/POD-901-file.bin",
+    )
+    monkeypatch.setattr(
+        "app.blueprints.paperwork.routes.generate_signed_url",
+        lambda blob_name: f"https://signed.example.com/{blob_name.strip('/').replace('/', '%2F')}",
+    )
+
+    payload = {
+        "pod_id": "POD-901",
+        "photo_blob_name": "pod/POD-901-picture.jpg",
+        "signature_blob_name": "pod/POD-901-signature.png",
+        "generated_files": [
+            {
+                "filename": "POD-901-picture.jpg",
+                "blob_name": "pod/POD-901-picture.jpg",
+                "content_base64": "aGVsbG8=",
+            }
+        ],
+    }
+
+    response = client.post("/pod/submit", json=payload)
+
+    assert response.status_code == 200
+
+    saved = PodSubmission.query.filter_by(pod_reference="POD-901").all()
+    assert len(saved) == 1
+    assert saved[0].pod_picture_url == "https://signed.example.com/pod%2FPOD-901-picture.jpg"
+    assert saved[0].captured_signature_url == "https://signed.example.com/pod%2FPOD-901-signature.png"
+
+    with client.session_transaction() as sess:
+        assert sess["pod_history"][0]["pod_picture_url"] == "https://signed.example.com/pod%2FPOD-901-picture.jpg"
+        assert sess["pod_history"][0]["captured_signature_url"] == "https://signed.example.com/pod%2FPOD-901-signature.png"
