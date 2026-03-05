@@ -42,6 +42,12 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     // Process files sequentially
     for (let i = 0; i < files.length; i++) {
         statusDiv.innerText = `Processing document ${i + 1} of ${files.length}: ${files[i].name}...`;
+
+        if (files[i].size === 0) {
+            console.warn(`Skipping empty file: ${files[i].name}`);
+            batchResults.failed.push(files[i].name);
+            continue;
+        }
         
         const formData = new FormData();
         formData.append('csrf_token', csrfToken);
