@@ -18,11 +18,16 @@ def _read_upload_bytes(file_storage):
     return file_bytes or b""
 
 class CouchdropService:
-    @staticmethod
-    def _ensure_couchdrop_path_exists(token, destination_path):
+    _validated_paths = set()
+
+    @classmethod
+    def _ensure_couchdrop_path_exists(cls, token, destination_path):
         normalized_path = destination_path.strip()
         if not normalized_path:
             raise ValueError("destination_path cannot be empty.")
+
+        if normalized_path in cls._validated_paths:
+            return True
 
         segments = [segment for segment in normalized_path.strip("/").split("/") if segment]
         if not segments:
@@ -34,13 +39,17 @@ class CouchdropService:
         for segment in segments:
             current_path = f"{current_path}/{segment}" if current_path else f"/{segment}"
 
+            if current_path in cls._validated_paths:
+                continue
+
             check_response = requests.get(
-                "https://api.couchdrop.io/manage/fileprops",
+                "https://fileio.couchdrop.io/file/stat",
                 headers=headers,
                 params={"path": current_path}
             )
 
             if check_response.status_code == 200:
+                cls._validated_paths.add(current_path)
                 continue
 
             create_response = requests.post(
@@ -58,6 +67,9 @@ class CouchdropService:
                 )
                 return False
 
+            cls._validated_paths.add(current_path)
+
+        cls._validated_paths.add(normalized_path)
         return True
 
     @staticmethod

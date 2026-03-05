@@ -14,8 +14,12 @@ class DummyResponse:
 
 def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
     monkeypatch.setenv("COUCHDROP_TOKEN", "test-token")
+    CouchdropService._validated_paths.clear()
 
-    sent_payloads = []
+    upload_payloads = []
+
+    def fake_get(url, headers=None, params=None):
+        return DummyResponse(200)
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
 
@@ -24,6 +28,7 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
             sent_payloads.append(data)
         return DummyResponse(201)
 
+    monkeypatch.setattr("app.services.couchdrop.requests.get", fake_get)
     monkeypatch.setattr("app.services.couchdrop.requests.post", fake_post)
 
     user = SimpleNamespace(first_name="Test", last_name="Driver")
