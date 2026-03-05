@@ -7,7 +7,11 @@ import requests
 
 
 def _prepare_upload_payload(file_storage):
-    """Return a rewound file-like payload and byte count for multipart upload."""
+    """Return an isolated in-memory upload payload and byte count.
+
+    We intentionally copy into ``BytesIO`` so downstream multipart upload never
+    depends on request-scoped stream objects that may already be exhausted.
+    """
     stream = getattr(file_storage, "stream", None) or file_storage
 
     if hasattr(stream, "seek"):
@@ -16,32 +20,24 @@ def _prepare_upload_payload(file_storage):
         except Exception:
             pass
 
-    byte_count = None
-    if hasattr(stream, "tell") and hasattr(stream, "seek"):
+    try:
+        raw_bytes = stream.read() if hasattr(stream, "read") else b""
+    except Exception:
+        raw_bytes = b""
+
+    if isinstance(raw_bytes, str):
+        raw_bytes = raw_bytes.encode("utf-8")
+
+    payload_stream = BytesIO(raw_bytes or b"")
+    payload_stream.seek(0)
+
+    if hasattr(stream, "seek"):
         try:
-            current = stream.tell()
-            stream.seek(0, os.SEEK_END)
-            byte_count = stream.tell()
             stream.seek(0)
-            if current and current != 0:
-                stream.seek(0)
         except Exception:
-            byte_count = None
+            pass
 
-    if byte_count is None:
-        try:
-            raw_bytes = stream.read() if hasattr(stream, "read") else b""
-        except Exception:
-            raw_bytes = b""
-
-        if isinstance(raw_bytes, str):
-            raw_bytes = raw_bytes.encode("utf-8")
-
-        stream = BytesIO(raw_bytes or b"")
-        stream.seek(0)
-        byte_count = len(raw_bytes or b"")
-
-    return stream, byte_count
+    return payload_stream, len(raw_bytes or b"")
 
 class CouchdropService:
     _validated_paths = set()
