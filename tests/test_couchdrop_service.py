@@ -17,8 +17,11 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
 
     sent_payloads = []
 
+    monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
+
     def fake_post(url, headers=None, params=None, data=None):
-        sent_payloads.append(data)
+        if url.endswith("/file/upload"):
+            sent_payloads.append(data)
         return DummyResponse(201)
 
     monkeypatch.setattr("app.services.couchdrop.requests.post", fake_post)
@@ -31,5 +34,17 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
 
     result = CouchdropService.upload_driver_paperwork(user, file_storage)
 
-    assert result is True
+    assert result.endswith("/pod.pdf")
     assert sent_payloads == [b"important-pdf-bytes"]
+
+
+def test_upload_driver_paperwork_rejects_empty_payload(monkeypatch):
+    monkeypatch.setenv("COUCHDROP_TOKEN", "test-token")
+
+    monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
+    monkeypatch.setattr("app.services.couchdrop.requests.post", lambda *args, **kwargs: DummyResponse(201))
+
+    user = SimpleNamespace(first_name="Test", last_name="Driver")
+    empty_file = FileStorage(stream=BytesIO(b""), filename="pod.pdf")
+
+    assert CouchdropService.upload_driver_paperwork(user, empty_file) is False
