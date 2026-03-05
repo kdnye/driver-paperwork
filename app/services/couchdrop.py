@@ -1,42 +1,47 @@
-import os
-import requests
 import logging
+import os
+from io import BytesIO
 from datetime import datetime
 
+import requests
 
-def _read_upload_bytes(file_storage):
-    """Return upload bytes from FileStorage after rewinding when possible."""
-    file_bytes = b""
 
-    if hasattr(file_storage, "seek"):
+def _prepare_upload_payload(file_storage):
+    """Return a rewound file-like payload and byte count for multipart upload."""
+    stream = getattr(file_storage, "stream", None) or file_storage
+
+    if hasattr(stream, "seek"):
         try:
-            file_storage.seek(0)
+            stream.seek(0)
         except Exception:
             pass
 
-    if hasattr(file_storage, "read"):
+    byte_count = None
+    if hasattr(stream, "tell") and hasattr(stream, "seek"):
         try:
-            file_bytes = file_storage.read()
-        except Exception:
-            file_bytes = b""
-
-    if not file_bytes:
-        stream = getattr(file_storage, "stream", None)
-        if stream is not None and hasattr(stream, "seek"):
-            try:
+            current = stream.tell()
+            stream.seek(0, os.SEEK_END)
+            byte_count = stream.tell()
+            stream.seek(0)
+            if current and current != 0:
                 stream.seek(0)
-            except Exception:
-                pass
-        if stream is not None and hasattr(stream, "read"):
-            try:
-                file_bytes = stream.read()
-            except Exception:
-                file_bytes = b""
+        except Exception:
+            byte_count = None
 
-    if isinstance(file_bytes, str):
-        file_bytes = file_bytes.encode("utf-8")
+    if byte_count is None:
+        try:
+            raw_bytes = stream.read() if hasattr(stream, "read") else b""
+        except Exception:
+            raw_bytes = b""
 
-    return file_bytes or b""
+        if isinstance(raw_bytes, str):
+            raw_bytes = raw_bytes.encode("utf-8")
+
+        stream = BytesIO(raw_bytes or b"")
+        stream.seek(0)
+        byte_count = len(raw_bytes or b"")
+
+    return stream, byte_count
 
 class CouchdropService:
     _validated_paths = set()
@@ -110,16 +115,14 @@ class CouchdropService:
         
         headers = {"token": token}
         
-        # Reset stream position in case validation/routes already consumed bytes.
-        # Read once into bytes so the request body is deterministic.
-        file_bytes = _read_upload_bytes(file_storage)
-        if not file_bytes:
+        payload_stream, payload_size = _prepare_upload_payload(file_storage)
+        if payload_size <= 0:
             logging.error("Couchdrop upload aborted: empty file payload", extra={"path": remote_path})
             return False
 
         logging.info(
             "Couchdrop upload payload prepared",
-            extra={"path": remote_path, "byte_count": len(file_bytes)},
+            extra={"path": remote_path, "byte_count": payload_size},
         )
         
         try:
@@ -133,7 +136,7 @@ class CouchdropService:
                 files={
                     "file": (
                         file_storage.filename,
-                        file_bytes,
+                        payload_stream,
                         getattr(file_storage, "content_type", None) or "application/octet-stream",
                     )
                 },
