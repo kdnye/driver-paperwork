@@ -4,6 +4,19 @@ import logging
 from datetime import datetime
 
 
+def _read_upload_bytes(file_storage):
+    """Return upload bytes from FileStorage after rewinding when possible."""
+    stream = getattr(file_storage, "stream", file_storage)
+
+    if hasattr(stream, "seek"):
+        stream.seek(0)
+
+    file_bytes = stream.read()
+    if isinstance(file_bytes, str):
+        file_bytes = file_bytes.encode("utf-8")
+
+    return file_bytes or b""
+
 class CouchdropService:
     _validated_paths = set()
 
@@ -80,11 +93,10 @@ class CouchdropService:
         }
         
         # Reset stream position in case validation/routes already consumed bytes.
-        # Then read into memory once so retries can reuse identical payload bytes.
-        file_storage.seek(0)
-        file_bytes = file_storage.read()
+        # Read once into bytes so the request body is deterministic.
+        file_bytes = _read_upload_bytes(file_storage)
         if not file_bytes:
-            logging.error("Couchdrop upload aborted: [%s] is empty.", file_storage.filename)
+            logging.error("Couchdrop upload aborted: empty file payload", extra={"path": remote_path})
             return False
         
         try:

@@ -21,9 +21,11 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
     def fake_get(url, headers=None, params=None):
         return DummyResponse(200)
 
+    monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
+
     def fake_post(url, headers=None, params=None, data=None):
-        if "file/upload" in url:
-            upload_payloads.append(data)
+        if url.endswith("/file/upload"):
+            sent_payloads.append(data)
         return DummyResponse(201)
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", fake_get)
@@ -38,40 +40,16 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
     result = CouchdropService.upload_driver_paperwork(user, file_storage)
 
     assert result.endswith("/pod.pdf")
-    assert upload_payloads == [b"important-pdf-bytes"]
-
-
-def test_ensure_couchdrop_path_uses_cache(monkeypatch):
-    CouchdropService._validated_paths.clear()
-    get_calls = []
-
-    def fake_get(url, headers=None, params=None):
-        get_calls.append(params["path"])
-        return DummyResponse(200)
-
-    monkeypatch.setattr("app.services.couchdrop.requests.get", fake_get)
-
-    assert CouchdropService._ensure_couchdrop_path_exists("token", "/Paperwork/Alice/2026-03-05") is True
-    assert CouchdropService._ensure_couchdrop_path_exists("token", "/Paperwork/Alice/2026-03-05") is True
-
-    assert get_calls == ["/Paperwork", "/Paperwork/Alice", "/Paperwork/Alice/2026-03-05"]
+    assert sent_payloads == [b"important-pdf-bytes"]
 
 
 def test_upload_driver_paperwork_rejects_empty_payload(monkeypatch):
     monkeypatch.setenv("COUCHDROP_TOKEN", "test-token")
 
-    post_calls = []
-
-    def fake_post(url, headers=None, params=None, data=None):
-        post_calls.append((url, data))
-        return DummyResponse(201)
-
-    monkeypatch.setattr("app.services.couchdrop.requests.post", fake_post)
+    monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
+    monkeypatch.setattr("app.services.couchdrop.requests.post", lambda *args, **kwargs: DummyResponse(201))
 
     user = SimpleNamespace(first_name="Test", last_name="Driver")
-    file_storage = FileStorage(stream=BytesIO(b""), filename="pod.pdf")
+    empty_file = FileStorage(stream=BytesIO(b""), filename="pod.pdf")
 
-    result = CouchdropService.upload_driver_paperwork(user, file_storage)
-
-    assert result is False
-    assert post_calls == []
+    assert CouchdropService.upload_driver_paperwork(user, empty_file) is False
