@@ -41,7 +41,7 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
 
     assert result.endswith("/pod.pdf")
     assert len(sent_payloads) == 1
-    assert sent_payloads[0].read() == b"important-pdf-bytes"
+    assert sent_payloads[0] == b"important-pdf-bytes"
 
 
 def test_upload_driver_paperwork_uses_multipart_file_upload(monkeypatch):
@@ -68,7 +68,7 @@ def test_upload_driver_paperwork_uses_multipart_file_upload(monkeypatch):
     assert len(captured_files) == 1
     name, payload, content_type = captured_files[0]["file"]
     assert name == "pod.pdf"
-    assert payload.read() == b"multipart-bytes"
+    assert payload == b"multipart-bytes"
     assert content_type == "application/pdf"
 
 

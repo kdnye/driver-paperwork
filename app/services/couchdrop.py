@@ -1,17 +1,12 @@
 import logging
 import os
-from io import BytesIO
 from datetime import datetime
 
 import requests
 
 
 def _prepare_upload_payload(file_storage):
-    """Return an isolated in-memory upload payload and byte count.
-
-    We intentionally copy into ``BytesIO`` so downstream multipart upload never
-    depends on request-scoped stream objects that may already be exhausted.
-    """
+    """Return upload bytes and byte count from the incoming file object."""
     stream = getattr(file_storage, "stream", None) or file_storage
 
     if hasattr(stream, "seek"):
@@ -28,16 +23,13 @@ def _prepare_upload_payload(file_storage):
     if isinstance(raw_bytes, str):
         raw_bytes = raw_bytes.encode("utf-8")
 
-    payload_stream = BytesIO(raw_bytes or b"")
-    payload_stream.seek(0)
-
     if hasattr(stream, "seek"):
         try:
             stream.seek(0)
         except Exception:
             pass
 
-    return payload_stream, len(raw_bytes or b"")
+    return raw_bytes or b"", len(raw_bytes or b"")
 
 class CouchdropService:
     _validated_paths = set()
@@ -111,7 +103,7 @@ class CouchdropService:
         
         headers = {"token": token}
         
-        payload_stream, payload_size = _prepare_upload_payload(file_storage)
+        payload_bytes, payload_size = _prepare_upload_payload(file_storage)
         if payload_size <= 0:
             logging.error("Couchdrop upload aborted: empty file payload", extra={"path": remote_path})
             return False
@@ -132,7 +124,7 @@ class CouchdropService:
                 files={
                     "file": (
                         file_storage.filename,
-                        payload_stream,
+                        payload_bytes,
                         getattr(file_storage, "content_type", None) or "application/octet-stream",
                     )
                 },
