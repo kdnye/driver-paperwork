@@ -21,6 +21,8 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
     def fake_get(url, headers=None, params=None):
         return DummyResponse(200)
 
+    monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
+
     def fake_post(url, headers=None, params=None, data=None, files=None):
         if url.endswith("/file/upload"):
             sent_payloads.append(data)
@@ -67,6 +69,11 @@ def test_upload_driver_paperwork_uses_octet_stream_body_upload(monkeypatch):
     assert captured_requests[0]["data"] == b"multipart-bytes"
     assert captured_requests[0]["files"] is None
     assert captured_requests[0]["headers"]["Content-Type"] == "application/octet-stream"
+    assert len(captured_files) == 1
+    name, payload, content_type = captured_files[0]["file"]
+    assert name == "pod.pdf"
+    assert payload == b"multipart-bytes"
+    assert content_type == "application/pdf"
 
 
 def test_upload_driver_paperwork_rejects_empty_payload(monkeypatch):

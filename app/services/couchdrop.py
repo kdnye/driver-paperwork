@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime
 from urllib.parse import urlparse, urlunparse
+from urllib.parse import urljoin
 
 import requests
 
@@ -61,6 +62,9 @@ class CouchdropService:
     @classmethod
     def _api_url(cls, path):
         return f"{cls._service_base_url()}/{path.lstrip('/')}"
+    def _api_url(path):
+        base_url = (os.getenv("COUCHDROP_BASE_URL") or "https://fileio.couchdrop.io").strip().rstrip("/") + "/"
+        return urljoin(base_url, path.lstrip("/"))
 
     @classmethod
     def _ensure_couchdrop_path_exists(cls, token, destination_path):
@@ -76,7 +80,7 @@ class CouchdropService:
             raise ValueError("destination_path must include at least one folder segment.")
 
         current_path = ""
-        headers = {"token": token}
+        headers = {"token": token, "Content-Type": "application/octet-stream"}
 
         for segment in segments:
             current_path = f"{current_path}/{segment}" if current_path else f"/{segment}"
@@ -138,6 +142,9 @@ class CouchdropService:
 
         headers = {"token": token, "Content-Type": "application/octet-stream"}
 
+        
+        headers = {"token": token, "Content-Type": "application/octet-stream"}
+        
         payload_bytes, payload_size = _prepare_upload_payload(file_storage)
         if payload_size <= 0:
             logging.error("Couchdrop upload aborted: empty file payload", extra={"path": remote_path})
@@ -157,6 +164,13 @@ class CouchdropService:
                 headers=headers,
                 params={"path": remote_path},
                 data=payload_bytes,
+                files={
+                    "file": (
+                        file_storage.filename,
+                        payload_bytes,
+                        getattr(file_storage, "content_type", None) or "application/octet-stream",
+                    )
+                },
             )
 
             if response.status_code not in (200, 201):
