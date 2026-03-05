@@ -6,12 +6,33 @@ from datetime import datetime
 
 def _read_upload_bytes(file_storage):
     """Return upload bytes from FileStorage after rewinding when possible."""
-    stream = getattr(file_storage, "stream", file_storage)
+    file_bytes = b""
 
-    if hasattr(stream, "seek"):
-        stream.seek(0)
+    if hasattr(file_storage, "seek"):
+        try:
+            file_storage.seek(0)
+        except Exception:
+            pass
 
-    file_bytes = stream.read()
+    if hasattr(file_storage, "read"):
+        try:
+            file_bytes = file_storage.read()
+        except Exception:
+            file_bytes = b""
+
+    if not file_bytes:
+        stream = getattr(file_storage, "stream", None)
+        if stream is not None and hasattr(stream, "seek"):
+            try:
+                stream.seek(0)
+            except Exception:
+                pass
+        if stream is not None and hasattr(stream, "read"):
+            try:
+                file_bytes = stream.read()
+            except Exception:
+                file_bytes = b""
+
     if isinstance(file_bytes, str):
         file_bytes = file_bytes.encode("utf-8")
 
@@ -98,6 +119,11 @@ class CouchdropService:
         if not file_bytes:
             logging.error("Couchdrop upload aborted: empty file payload", extra={"path": remote_path})
             return False
+
+        logging.info(
+            "Couchdrop upload payload prepared",
+            extra={"path": remote_path, "byte_count": len(file_bytes)},
+        )
         
         try:
             if not CouchdropService._ensure_couchdrop_path_exists(token, folder_path):

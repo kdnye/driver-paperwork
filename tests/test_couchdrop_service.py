@@ -16,7 +16,7 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
     monkeypatch.setenv("COUCHDROP_TOKEN", "test-token")
     CouchdropService._validated_paths.clear()
 
-    upload_payloads = []
+    sent_payloads = []
 
     def fake_get(url, headers=None, params=None):
         return DummyResponse(200)
