@@ -9,7 +9,7 @@ from app import db
 from app.blueprints.auth.guards import require_employee_approval
 from app.services.volume_storage import VolumeStorageService
 from app.services.gcs import generate_signed_url
-from app.services.pubsub import pubsub_service
+from app.services.pubsub_service import pubsub_service
 from models import PodSubmission
 from werkzeug.datastructures import FileStorage
 
