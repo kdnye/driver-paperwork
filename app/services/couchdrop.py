@@ -36,6 +36,12 @@ def _prepare_upload_payload(file_storage):
 class CouchdropService:
     _validated_paths = set()
 
+    _ENDPOINT_FALLBACKS = {
+        "upload": ("/file/upload", "/upload"),
+        "mkdir": ("/file/mkdir", "/mkdir"),
+        "stat": ("/file/stat", "/stat"),
+    }
+
     @staticmethod
     def _service_base_url():
         """Resolve a stable Couchdrop API root URL.
@@ -51,7 +57,7 @@ class CouchdropService:
             return "https://fileio.couchdrop.io"
 
         clean_path = parsed.path.rstrip("/")
-        for suffix in ("/file/upload", "/file/mkdir", "/file/stat"):
+        for suffix in ("/file/upload", "/file/mkdir", "/file/stat", "/upload", "/mkdir", "/stat"):
             if clean_path.endswith(suffix):
                 clean_path = clean_path[: -len(suffix)]
                 break
@@ -61,6 +67,11 @@ class CouchdropService:
     @classmethod
     def _api_url(cls, path):
         return f"{cls._service_base_url()}/{path.lstrip('/')}"
+
+    @classmethod
+    def _endpoint_urls(cls, operation):
+        fallback_paths = cls._ENDPOINT_FALLBACKS[operation]
+        return [cls._api_url(path) for path in fallback_paths]
 
     @classmethod
     def _ensure_couchdrop_path_exists(cls, token, destination_path):
@@ -84,21 +95,30 @@ class CouchdropService:
             if current_path in cls._validated_paths:
                 continue
 
-            check_response = requests.get(
-                cls._api_url("/file/stat"),
-                headers=headers,
-                params={"path": current_path},
-            )
+            check_response = None
+            for stat_url in cls._endpoint_urls("stat"):
+                check_response = requests.get(
+                    stat_url,
+                    headers=headers,
+                    params={"path": current_path},
+                )
+                if check_response.status_code != 404:
+                    break
 
             if check_response.status_code == 200:
                 cls._validated_paths.add(current_path)
                 continue
 
-            create_response = requests.post(
-                cls._api_url("/file/mkdir"),
-                headers=headers,
-                params={"path": current_path},
-            )
+            create_response = None
+            mkdir_urls = cls._endpoint_urls("mkdir")
+            for mkdir_url in mkdir_urls:
+                create_response = requests.post(
+                    mkdir_url,
+                    headers=headers,
+                    params={"path": current_path},
+                )
+                if create_response.status_code != 404:
+                    break
 
             if create_response.status_code in (200, 201, 409):
                 cls._validated_paths.add(current_path)
@@ -107,7 +127,7 @@ class CouchdropService:
             if create_response.status_code == 404:
                 logging.warning(
                     "Couchdrop mkdir endpoint returned 404; continuing without directory pre-creation.",
-                    extra={"path": current_path, "endpoint": cls._api_url('/file/mkdir')},
+                    extra={"path": current_path, "endpoint": mkdir_urls[-1]},
                 )
                 return True
 
@@ -152,12 +172,16 @@ class CouchdropService:
             if not CouchdropService._ensure_couchdrop_path_exists(token, folder_path):
                 return False
 
-            response = requests.post(
-                CouchdropService._api_url("/file/upload"),
-                headers=headers,
-                params={"path": remote_path},
-                data=payload_bytes,
-            )
+            response = None
+            for upload_url in CouchdropService._endpoint_urls("upload"):
+                response = requests.post(
+                    upload_url,
+                    headers=headers,
+                    params={"path": remote_path},
+                    data=payload_bytes,
+                )
+                if response.status_code != 404:
+                    break
 
             if response.status_code not in (200, 201):
                 logging.error(f"Couchdrop Upload Failed [{response.status_code}]: {response.text}")
