@@ -69,11 +69,6 @@ def test_upload_driver_paperwork_uses_octet_stream_body_upload(monkeypatch):
     assert captured_requests[0]["data"] == b"multipart-bytes"
     assert captured_requests[0]["files"] is None
     assert captured_requests[0]["headers"]["Content-Type"] == "application/octet-stream"
-    assert len(captured_files) == 1
-    name, payload, content_type = captured_files[0]["file"]
-    assert name == "pod.pdf"
-    assert payload == b"multipart-bytes"
-    assert content_type == "application/pdf"
 
 
 def test_upload_driver_paperwork_rejects_empty_payload(monkeypatch):
