@@ -269,6 +269,10 @@ def submit_pod():
             if not uploaded_uri:
                 raise ValueError("One or more POD files failed to upload.")
 
+            # Worker expects blob name relative to mounted bucket path.
+            relative_blob_name = os.path.relpath(uploaded_uri, VolumeStorageService.MOUNT_PATH)
+            pubsub_service.publish_upload_event(relative_blob_name)
+
             uploaded_uris.append(uploaded_uri)
             success_count += 1
 
