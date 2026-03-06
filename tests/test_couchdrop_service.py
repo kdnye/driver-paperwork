@@ -117,3 +117,32 @@ def test_mkdir_404_falls_back_to_upload_attempt(monkeypatch):
     assert result.endswith("/pod.pdf")
     assert any(url.endswith("/file/mkdir") for url in calls)
     assert any(url.endswith("/file/upload") for url in calls)
+
+
+def test_upload_uses_legacy_endpoint_when_file_upload_returns_404(monkeypatch):
+    monkeypatch.setenv("COUCHDROP_TOKEN", "test-token")
+    monkeypatch.setenv("COUCHDROP_BASE_URL", "https://fileio.couchdrop.io")
+    CouchdropService._validated_paths.clear()
+
+    monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
+
+    calls = []
+
+    def fake_post(url, headers=None, params=None, data=None, files=None):
+        calls.append(url)
+        if url.endswith("/file/upload"):
+            return DummyResponse(404, "not found")
+        if url.endswith("/upload"):
+            return DummyResponse(201)
+        return DummyResponse(201)
+
+    monkeypatch.setattr("app.services.couchdrop.requests.post", fake_post)
+
+    user = SimpleNamespace(first_name="Test", last_name="Driver")
+    upload = FileStorage(stream=BytesIO(b"bytes"), filename="pod.pdf")
+
+    result = CouchdropService.upload_driver_paperwork(user, upload)
+
+    assert result.endswith("/pod.pdf")
+    assert any(url.endswith("/file/upload") for url in calls)
+    assert any(url.endswith("/upload") for url in calls)
