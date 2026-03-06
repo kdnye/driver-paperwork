@@ -146,3 +146,52 @@ def test_upload_uses_legacy_endpoint_when_file_upload_returns_404(monkeypatch):
     assert result.endswith("/pod.pdf")
     assert any(url.endswith("/file/upload") for url in calls)
     assert any(url.endswith("/upload") for url in calls)
+
+
+def test_upload_fails_when_remote_stat_reports_zero_bytes(monkeypatch):
+    monkeypatch.setenv("COUCHDROP_TOKEN", "test-token")
+    monkeypatch.setenv("COUCHDROP_BASE_URL", "https://fileio.couchdrop.io")
+    CouchdropService._validated_paths.clear()
+
+    def fake_get(url, headers=None, params=None):
+        if url.endswith("/file/stat") and params and params.get("path", "").endswith("/pod.pdf"):
+            class JsonResponse(DummyResponse):
+                def json(self):
+                    return {"size": 0}
+
+            return JsonResponse(200)
+
+        return DummyResponse(200)
+
+    monkeypatch.setattr("app.services.couchdrop.requests.get", fake_get)
+    monkeypatch.setattr("app.services.couchdrop.requests.post", lambda *args, **kwargs: DummyResponse(201))
+
+    user = SimpleNamespace(first_name="Test", last_name="Driver")
+    upload = FileStorage(stream=BytesIO(b"bytes"), filename="pod.pdf")
+
+    assert CouchdropService.upload_driver_paperwork(user, upload) is False
+
+
+def test_upload_succeeds_when_remote_stat_size_is_positive(monkeypatch):
+    monkeypatch.setenv("COUCHDROP_TOKEN", "test-token")
+    monkeypatch.setenv("COUCHDROP_BASE_URL", "https://fileio.couchdrop.io")
+    CouchdropService._validated_paths.clear()
+
+    def fake_get(url, headers=None, params=None):
+        if url.endswith("/file/stat") and params and params.get("path", "").endswith("/pod.pdf"):
+            class JsonResponse(DummyResponse):
+                def json(self):
+                    return {"additional_info": {"size": 42}}
+
+            return JsonResponse(200)
+
+        return DummyResponse(200)
+
+    monkeypatch.setattr("app.services.couchdrop.requests.get", fake_get)
+    monkeypatch.setattr("app.services.couchdrop.requests.post", lambda *args, **kwargs: DummyResponse(201))
+
+    user = SimpleNamespace(first_name="Test", last_name="Driver")
+    upload = FileStorage(stream=BytesIO(b"bytes"), filename="pod.pdf")
+
+    result = CouchdropService.upload_driver_paperwork(user, upload)
+    assert result.endswith("/pod.pdf")

@@ -143,6 +143,65 @@ class CouchdropService:
         return True
 
     @staticmethod
+    def _extract_remote_size(stat_payload):
+        """Extract a byte size from Couchdrop stat payload variants."""
+        if not isinstance(stat_payload, dict):
+            return None
+
+        candidate_keys = ("size", "total_size", "bytes", "file_size")
+
+        for key in candidate_keys:
+            value = stat_payload.get(key)
+            if isinstance(value, int):
+                return value
+
+        details = stat_payload.get("additional_info")
+        if isinstance(details, dict):
+            for key in candidate_keys:
+                value = details.get(key)
+                if isinstance(value, int):
+                    return value
+
+        return None
+
+    @classmethod
+    def _verify_remote_payload_size(cls, token, remote_path):
+        """Return False only when remote metadata explicitly reports a zero-byte object."""
+        headers = {"token": token, "Content-Type": "application/octet-stream"}
+
+        for stat_url in cls._endpoint_urls("stat"):
+            response = requests.get(
+                stat_url,
+                headers=headers,
+                params={"path": remote_path},
+            )
+
+            if response.status_code == 404:
+                continue
+
+            if response.status_code != 200:
+                logging.warning(
+                    "Unable to verify Couchdrop payload size",
+                    extra={"path": remote_path, "status_code": response.status_code},
+                )
+                return True
+
+            try:
+                payload = response.json()
+            except (AttributeError, ValueError):
+                logging.warning("Couchdrop stat response was not valid JSON", extra={"path": remote_path})
+                return True
+
+            remote_size = cls._extract_remote_size(payload)
+            if remote_size == 0:
+                logging.error("Couchdrop reported a zero-byte file after upload", extra={"path": remote_path})
+                return False
+
+            return True
+
+        return True
+
+    @staticmethod
     def upload_driver_paperwork(user, file_storage):
         raw_token = os.getenv("COUCHDROP_TOKEN")
         if not raw_token:
@@ -185,6 +244,9 @@ class CouchdropService:
 
             if response.status_code not in (200, 201):
                 logging.error(f"Couchdrop Upload Failed [{response.status_code}]: {response.text}")
+                return False
+
+            if not CouchdropService._verify_remote_payload_size(token, remote_path):
                 return False
 
             return remote_path
