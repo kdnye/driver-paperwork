@@ -23,13 +23,13 @@ def test_upload_driver_paperwork_rewinds_stream_before_read(monkeypatch):
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
 
-    def fake_post(url, headers=None, params=None, data=None, files=None):
+    def fake_put(url, headers=None, params=None, data=None, files=None):
         if url.endswith("/file/upload"):
             sent_payloads.append(data)
         return DummyResponse(201)
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", fake_get)
-    monkeypatch.setattr("app.services.couchdrop.requests.post", fake_post)
+    monkeypatch.setattr("app.services.couchdrop.requests.put", fake_put)
 
     user = SimpleNamespace(first_name="Test", last_name="Driver")
     file_storage = FileStorage(stream=BytesIO(b"important-pdf-bytes"), filename="pod.pdf")
@@ -51,12 +51,12 @@ def test_upload_driver_paperwork_uses_octet_stream_body_upload(monkeypatch):
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
 
-    def fake_post(url, headers=None, params=None, data=None, files=None):
+    def fake_put(url, headers=None, params=None, data=None, files=None):
         if url.endswith("/file/upload"):
             captured_requests.append({"headers": headers, "params": params, "data": data, "files": files})
         return DummyResponse(201)
 
-    monkeypatch.setattr("app.services.couchdrop.requests.post", fake_post)
+    monkeypatch.setattr("app.services.couchdrop.requests.put", fake_put)
 
     user = SimpleNamespace(first_name="Test", last_name="Driver")
     upload = FileStorage(stream=BytesIO(b"multipart-bytes"), filename="pod.pdf", content_type="application/pdf")
@@ -75,7 +75,7 @@ def test_upload_driver_paperwork_rejects_empty_payload(monkeypatch):
     monkeypatch.setenv("COUCHDROP_TOKEN", "test-token")
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", lambda *args, **kwargs: DummyResponse(200))
-    monkeypatch.setattr("app.services.couchdrop.requests.post", lambda *args, **kwargs: DummyResponse(201))
+    monkeypatch.setattr("app.services.couchdrop.requests.put", lambda *args, **kwargs: DummyResponse(201))
 
     user = SimpleNamespace(first_name="Test", last_name="Driver")
     empty_file = FileStorage(stream=BytesIO(b""), filename="pod.pdf")
@@ -102,12 +102,17 @@ def test_mkdir_404_falls_back_to_upload_attempt(monkeypatch):
         calls.append(url)
         if url.endswith("/file/mkdir"):
             return DummyResponse(404, "not found")
+        return DummyResponse(201)
+
+    def fake_put(url, headers=None, params=None, data=None, files=None):
+        calls.append(url)
         if url.endswith("/file/upload"):
             return DummyResponse(201)
         return DummyResponse(201)
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", fake_get)
     monkeypatch.setattr("app.services.couchdrop.requests.post", fake_post)
+    monkeypatch.setattr("app.services.couchdrop.requests.put", fake_put)
 
     user = SimpleNamespace(first_name="Test", last_name="Driver")
     upload = FileStorage(stream=BytesIO(b"bytes"), filename="pod.pdf")
@@ -128,7 +133,7 @@ def test_upload_uses_legacy_endpoint_when_file_upload_returns_404(monkeypatch):
 
     calls = []
 
-    def fake_post(url, headers=None, params=None, data=None, files=None):
+    def fake_put(url, headers=None, params=None, data=None, files=None):
         calls.append(url)
         if url.endswith("/file/upload"):
             return DummyResponse(404, "not found")
@@ -136,7 +141,7 @@ def test_upload_uses_legacy_endpoint_when_file_upload_returns_404(monkeypatch):
             return DummyResponse(201)
         return DummyResponse(201)
 
-    monkeypatch.setattr("app.services.couchdrop.requests.post", fake_post)
+    monkeypatch.setattr("app.services.couchdrop.requests.put", fake_put)
 
     user = SimpleNamespace(first_name="Test", last_name="Driver")
     upload = FileStorage(stream=BytesIO(b"bytes"), filename="pod.pdf")
@@ -164,7 +169,7 @@ def test_upload_fails_when_remote_stat_reports_zero_bytes(monkeypatch):
         return DummyResponse(200)
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", fake_get)
-    monkeypatch.setattr("app.services.couchdrop.requests.post", lambda *args, **kwargs: DummyResponse(201))
+    monkeypatch.setattr("app.services.couchdrop.requests.put", lambda *args, **kwargs: DummyResponse(201))
 
     user = SimpleNamespace(first_name="Test", last_name="Driver")
     upload = FileStorage(stream=BytesIO(b"bytes"), filename="pod.pdf")
@@ -188,7 +193,7 @@ def test_upload_succeeds_when_remote_stat_size_is_positive(monkeypatch):
         return DummyResponse(200)
 
     monkeypatch.setattr("app.services.couchdrop.requests.get", fake_get)
-    monkeypatch.setattr("app.services.couchdrop.requests.post", lambda *args, **kwargs: DummyResponse(201))
+    monkeypatch.setattr("app.services.couchdrop.requests.put", lambda *args, **kwargs: DummyResponse(201))
 
     user = SimpleNamespace(first_name="Test", last_name="Driver")
     upload = FileStorage(stream=BytesIO(b"bytes"), filename="pod.pdf")

@@ -233,7 +233,7 @@ class CouchdropService:
 
             response = None
             for upload_url in CouchdropService._endpoint_urls("upload"):
-                response = requests.post(
+                response = requests.put(
                     upload_url,
                     headers=headers,
                     params={"path": remote_path},
