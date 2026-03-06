@@ -1,6 +1,7 @@
 import base64
 import binascii
 import io
+import os
 from urllib.parse import urlparse
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, g, jsonify, session
@@ -8,6 +9,7 @@ from app import db
 from app.blueprints.auth.guards import require_employee_approval
 from app.services.volume_storage import VolumeStorageService
 from app.services.gcs import generate_signed_url
+from app.services.pubsub import pubsub_service
 from models import PodSubmission
 from werkzeug.datastructures import FileStorage
 
@@ -202,8 +204,14 @@ def upload():
                 failure_count += 1
                 continue
 
-            if VolumeStorageService.upload_driver_paperwork(g.current_user, file):
+            uploaded_path = VolumeStorageService.upload_driver_paperwork(g.current_user, file)
+
+            if uploaded_path:
                 success_count += 1
+
+                # Worker expects blob name relative to mounted bucket path.
+                relative_blob_name = os.path.relpath(uploaded_path, VolumeStorageService.MOUNT_PATH)
+                pubsub_service.publish_upload_event(relative_blob_name)
             else:
                 failure_count += 1
 

@@ -69,4 +69,6 @@ def get_runtime_config() -> dict:
         "MAX_CONTENT_LENGTH": _get_max_content_length_bytes(),
         "SESSION_COOKIE_SECURE": _str_to_bool(os.getenv("SESSION_COOKIE_SECURE"), default=_is_production()),
         "REMEMBER_COOKIE_SECURE": _str_to_bool(os.getenv("REMEMBER_COOKIE_SECURE"), default=_is_production()),
+        "PUBSUB_PROJECT_ID": _get_env("PUBSUB_PROJECT_ID", "quote-tool-483716"),
+        "PUBSUB_TOPIC_NAME": _get_env("PUBSUB_TOPIC_NAME", "paperwork-uploads"),
     }
