@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from flask import Blueprint, render_template, request, flash, redirect, url_for, g, jsonify, session
 from app import db
 from app.blueprints.auth.guards import require_employee_approval
-from app.services.couchdrop import CouchdropService
+from app.services.volume_storage import VolumeStorageService
 from app.services.gcs import generate_signed_url
 from models import PodSubmission
 from werkzeug.datastructures import FileStorage
@@ -202,7 +202,7 @@ def upload():
                 failure_count += 1
                 continue
 
-            if CouchdropService.upload_driver_paperwork(g.current_user, file):
+            if VolumeStorageService.upload_driver_paperwork(g.current_user, file):
                 success_count += 1
             else:
                 failure_count += 1
@@ -257,7 +257,7 @@ def submit_pod():
     uploaded_uris = []
     try:
         for upload in uploads:
-            uploaded_uri = CouchdropService.upload_driver_paperwork(g.current_user, upload)
+            uploaded_uri = VolumeStorageService.upload_driver_paperwork(g.current_user, upload)
             if not uploaded_uri:
                 raise ValueError("One or more POD files failed to upload.")
 
